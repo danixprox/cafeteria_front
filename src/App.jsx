@@ -1,17 +1,19 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from "react";
+import Home from "./Features/public/Home";
+import Login from "./Features/public/Login";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [page, setPage] = useState("home");
 
   return (
-    <>
-      <h1>Prueba de cafeteria</h1>
-    </>
-  )
+    <div className="min-h-screen bg-slate-50">
+      {page === "home" ? (
+        <Home onLogin={() => setPage("login")} />
+      ) : (
+        <Login onBack={() => setPage("home")} />
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;
