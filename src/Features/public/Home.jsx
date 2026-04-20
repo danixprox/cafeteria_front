@@ -6,7 +6,7 @@ export default function Home() {
       <header className="bg-white border-b border-slate-200">
         <div className="mx-auto max-w-6xl px-4 py-5 flex items-center justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-amber-700">Cafetería Pro</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-amber-700">Cafetería Dulce Encanto</p>
             <h1 className="text-3xl font-semibold text-slate-900">Café & Sistema</h1>
           </div>
           <Link
