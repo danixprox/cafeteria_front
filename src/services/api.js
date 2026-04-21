@@ -1,35 +1,38 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 /**
- * Servicio único para conectar con el backend
- * Todos los endpoints de la API están centralizados aquí
+ * HEADERS CON TOKEN AUTOMÁTICO
  */
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
 
 // ======================== AUTENTICACIÓN ========================
 
-/**
- * Login del usuario
- * @param {string} correo - Email del usuario
- * @param {string} contrasena - Contraseña en texto plano
- * @returns {Promise} Datos del usuario autenticado
- */
 export const login = async (correo, contrasena) => {
   try {
-    const response = await fetch(`${API_URL}/api/usuarios/login/`, {
+    const response = await fetch(`${API_URL}/api/login/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        correo,
-        contrasena,
-      }),
+      body: JSON.stringify({ correo, contrasena }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
       throw new Error(data.error || 'Error al iniciar sesión');
+    }
+
+    // 🔐 Guardar token
+    if (data.token) {
+      localStorage.setItem('token', data.token);
     }
 
     return data;
@@ -39,18 +42,14 @@ export const login = async (correo, contrasena) => {
   }
 };
 
-/**
- * Logout del usuario
- * @returns {Promise}
- */
 export const logout = async () => {
   try {
-    const response = await fetch(`${API_URL}/api/usuarios/logout/`, {
+    const response = await fetch(`${API_URL}/api/logout/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
+
+    localStorage.removeItem('token');
 
     if (!response.ok) {
       throw new Error('Error al cerrar sesión');
@@ -63,11 +62,6 @@ export const logout = async () => {
   }
 };
 
-/**
- * Registro de nuevo usuario
- * @param {Object} userData - {nombre, correo, contrasena, cod_rol}
- * @returns {Promise} Datos del usuario creado
- */
 export const registro = async (userData) => {
   try {
     const response = await fetch(`${API_URL}/api/usuarios/`, {
@@ -93,17 +87,11 @@ export const registro = async (userData) => {
 
 // ======================== USUARIOS ========================
 
-/**
- * Obtener lista de todos los usuarios
- * @returns {Promise} Array de usuarios
- */
 export const obtenerUsuarios = async () => {
   try {
     const response = await fetch(`${API_URL}/api/usuarios/`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -117,18 +105,11 @@ export const obtenerUsuarios = async () => {
   }
 };
 
-/**
- * Obtener datos de un usuario específico
- * @param {number} usuarioId - ID del usuario
- * @returns {Promise} Datos del usuario
- */
 export const obtenerUsuario = async (usuarioId) => {
   try {
     const response = await fetch(`${API_URL}/api/usuarios/${usuarioId}/`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -142,19 +123,11 @@ export const obtenerUsuario = async (usuarioId) => {
   }
 };
 
-/**
- * Actualizar datos de un usuario
- * @param {number} usuarioId - ID del usuario
- * @param {Object} userData - Datos a actualizar
- * @returns {Promise}
- */
 export const actualizarUsuario = async (usuarioId, userData) => {
   try {
     const response = await fetch(`${API_URL}/api/usuarios/${usuarioId}/`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(userData),
     });
 
@@ -169,18 +142,11 @@ export const actualizarUsuario = async (usuarioId, userData) => {
   }
 };
 
-/**
- * Eliminar un usuario
- * @param {number} usuarioId - ID del usuario
- * @returns {Promise}
- */
 export const eliminarUsuario = async (usuarioId) => {
   try {
     const response = await fetch(`${API_URL}/api/usuarios/${usuarioId}/`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -194,19 +160,11 @@ export const eliminarUsuario = async (usuarioId) => {
   }
 };
 
-/**
- * Asignar rol a un usuario
- * @param {number} usuarioId - ID del usuario
- * @param {string} codRol - Código del rol
- * @returns {Promise}
- */
 export const asignarRol = async (usuarioId, codRol) => {
   try {
     const response = await fetch(`${API_URL}/api/usuarios/${usuarioId}/rol/`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ cod_rol: codRol }),
     });
 
@@ -223,17 +181,11 @@ export const asignarRol = async (usuarioId, codRol) => {
 
 // ======================== ROLES ========================
 
-/**
- * Obtener lista de roles disponibles
- * @returns {Promise} Array de roles
- */
 export const obtenerRoles = async () => {
   try {
     const response = await fetch(`${API_URL}/api/roles/`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -249,17 +201,11 @@ export const obtenerRoles = async () => {
 
 // ======================== EMPLEADOS ========================
 
-/**
- * Obtener lista de empleados
- * @returns {Promise} Array de empleados
- */
 export const obtenerEmpleados = async () => {
   try {
     const response = await fetch(`${API_URL}/api/empleados/`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -273,18 +219,11 @@ export const obtenerEmpleados = async () => {
   }
 };
 
-/**
- * Obtener detalle de un empleado
- * @param {number} empleadoId - ID del empleado
- * @returns {Promise}
- */
 export const obtenerEmpleado = async (empleadoId) => {
   try {
     const response = await fetch(`${API_URL}/api/empleados/${empleadoId}/`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -300,17 +239,11 @@ export const obtenerEmpleado = async (empleadoId) => {
 
 // ======================== CLIENTES ========================
 
-/**
- * Obtener lista de clientes
- * @returns {Promise} Array de clientes
- */
 export const obtenerClientes = async () => {
   try {
     const response = await fetch(`${API_URL}/api/clientes/`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -324,18 +257,11 @@ export const obtenerClientes = async () => {
   }
 };
 
-/**
- * Obtener detalle de un cliente
- * @param {number} clienteId - ID del cliente
- * @returns {Promise}
- */
 export const obtenerCliente = async (clienteId) => {
   try {
     const response = await fetch(`${API_URL}/api/clientes/${clienteId}/`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
