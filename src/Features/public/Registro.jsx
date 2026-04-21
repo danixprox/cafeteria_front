@@ -1,21 +1,16 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { registro, obtenerRoles } from '../../services/api';
+import { registro } from '../../services/api';
 import { validarRegistro, obtenerRequisitos } from '../../utils/validation';
 
 export default function Registro() {
   const navigate = useNavigate();
-  const [roles, setRoles] = useState([
-    { cod_rol: 'cli', nombre: 'Cliente' },
-    { cod_rol: 'emp', nombre: 'Empleado' },
-  ]);
 
   const [formData, setFormData] = useState({
     nombre: '',
     correo: '',
     contrasena: '',
     confirmarContrasena: '',
-    codRol: 'cli',
   });
 
   const [errores, setErrores] = useState({});
@@ -25,7 +20,6 @@ export default function Registro() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Obtener requisitos de contraseña
   const requisitos = obtenerRequisitos(formData.contrasena);
 
   const handleChange = (e) => {
@@ -34,7 +28,7 @@ export default function Registro() {
       ...formData,
       [name]: value,
     });
-    // Limpiar error del campo cuando el usuario comience a escribir
+
     if (errores[name]) {
       setErrores({
         ...errores,
@@ -48,33 +42,30 @@ export default function Registro() {
     setError('');
     setSuccess('');
 
-    // Validar formulario
     const validacion = validarRegistro(formData);
     if (!validacion.valido) {
       setErrores(validacion.errores);
-      setError('Por favor corrige los errores en el formulario');
+      setError('Revisa los campos marcados.');
       return;
     }
 
     setLoading(true);
 
     try {
-      // Llamar al servicio de API
-      const datos = await registro({
+      await registro({
         nombre: formData.nombre,
         correo: formData.correo,
         contrasena: formData.contrasena,
-        cod_rol: formData.codRol,
+        cod_rol: 'cliente', // fijo
       });
 
-      setSuccess('¡Registro exitoso! Redirigiendo al login...');
+      setSuccess('Cuenta creada. Te llevamos al inicio de sesión…');
 
-      // Redirigir a login después de 2 segundos
       setTimeout(() => {
         navigate('/login');
-      }, 2000);
+      }, 1800);
     } catch (err) {
-      setError(err.message || 'Error al registrar. Intenta con otro correo.');
+      setError(err.message || 'No se pudo registrar. Prueba con otro correo.');
     } finally {
       setLoading(false);
     }
@@ -84,26 +75,27 @@ export default function Registro() {
     <div className="min-h-screen from-amber-100 via-slate-50 to-amber-200 px-4 py-10">
       <div className="mx-auto max-w-5xl overflow-hidden bg-white shadow-2xl ring-1 ring-slate-200">
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          {/* Sección Izquierda - Desktop */}
+
+          {/* IZQUIERDA */}
           <section className="hidden bg-slate-900 p-10 text-white lg:block">
             <div className="flex h-full flex-col justify-between">
               <div>
                 <span className="inline-flex rounded-full bg-amber-200/15 px-3 py-1 text-xs uppercase tracking-[0.32em] text-amber-200">
-                  Cafetería Pro
+                  Donde Juanita
                 </span>
                 <h2 className="mt-8 text-4xl font-semibold leading-tight">
-                  Únete a nuestro equipo
+                  Tu café, a tu ritmo
                 </h2>
                 <p className="mt-5 max-w-sm text-slate-300">
-                  Crea tu cuenta y accede a todas las funcionalidades de Cafetería Pro.
+                  Regístrate para explorar el menú, guardar favoritos y pedir sin filas.
                 </p>
               </div>
 
               <div className="space-y-5">
                 <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-                  <p className="text-sm uppercase tracking-[0.28em] text-amber-200">Seguridad</p>
+                  <p className="text-sm uppercase tracking-[0.28em] text-amber-200">Para clientes</p>
                   <p className="mt-4 text-sm text-white">
-                    Tu contraseña se encripta de forma segura en nuestros servidores.
+                    Historial de pedidos, acceso rápido y notificaciones cuando tu pedido esté listo.
                   </p>
                 </div>
 
@@ -117,7 +109,7 @@ export default function Registro() {
             </div>
           </section>
 
-          {/* Sección Derecha - Formulario */}
+          {/* FORM */}
           <section className="p-8 sm:p-10">
             <Link
               to="/"
@@ -127,14 +119,15 @@ export default function Registro() {
             </Link>
 
             <div className="mb-8">
-              <p className="text-sm uppercase tracking-[0.32em] text-amber-600">Cafetería Pro</p>
-              <h1 className="mt-4 text-3xl font-semibold text-slate-900 sm:text-4xl">Crear cuenta</h1>
+              <p className="text-sm uppercase tracking-[0.32em] text-amber-600">Crear cuenta</p>
+              <h1 className="mt-4 text-3xl font-semibold text-slate-900 sm:text-4xl">
+                Empieza hoy
+              </h1>
               <p className="mt-3 text-slate-600">
-                Regístrate para acceder a tu panel de usuario.
+                Solo toma un minuto.
               </p>
             </div>
 
-            {/* Alertas */}
             {error && (
               <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-4">
                 <p className="text-sm text-red-700">❌ {error}</p>
@@ -147,20 +140,14 @@ export default function Registro() {
               </div>
             )}
 
-            {/* Formulario */}
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Nombre */}
               <div>
-                <label htmlFor="nombre" className="text-sm font-medium text-slate-700 block mb-2">
-                  Nombre completo
-                </label>
                 <input
-                  id="nombre"
-                  type="text"
                   name="nombre"
                   value={formData.nombre}
                   onChange={handleChange}
-                  placeholder="Juan García García"
+                  placeholder="Nombre completo"
                   className={`w-full rounded-3xl border ${errores.nombre ? 'border-red-500' : 'border-slate-300'} bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:ring-2 ${errores.nombre ? 'focus:ring-red-200' : 'focus:border-amber-500 focus:ring-amber-200'}`}
                   disabled={loading}
                 />
@@ -171,16 +158,11 @@ export default function Registro() {
 
               {/* Correo */}
               <div>
-                <label htmlFor="correo" className="text-sm font-medium text-slate-700 block mb-2">
-                  Correo electrónico
-                </label>
                 <input
-                  id="correo"
-                  type="email"
                   name="correo"
                   value={formData.correo}
                   onChange={handleChange}
-                  placeholder="tu.email@ejemplo.com"
+                  placeholder="Correo electrónico"
                   className={`w-full rounded-3xl border ${errores.correo ? 'border-red-500' : 'border-slate-300'} bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:ring-2 ${errores.correo ? 'focus:ring-red-200' : 'focus:border-amber-500 focus:ring-amber-200'}`}
                   disabled={loading}
                 />
@@ -189,40 +171,15 @@ export default function Registro() {
                 )}
               </div>
 
-              {/* Rol */}
-              <div>
-                <label htmlFor="codRol" className="text-sm font-medium text-slate-700 block mb-2">
-                  Tipo de cuenta
-                </label>
-                <select
-                  id="codRol"
-                  name="codRol"
-                  value={formData.codRol}
-                  onChange={handleChange}
-                  className="w-full rounded-3xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
-                  disabled={loading}
-                >
-                  <option value="cli">Cliente - Para comprar y hacer pedidos</option>
-                  <option value="emp">Empleado - Para gestionar la cafetería</option>
-                </select>
-                {errores.codRol && (
-                  <p className="text-xs text-red-600 mt-1">⚠️ {errores.codRol}</p>
-                )}
-              </div>
-
               {/* Contraseña */}
               <div>
-                <label htmlFor="contrasena" className="text-sm font-medium text-slate-700 block mb-2">
-                  Contraseña
-                </label>
                 <div className="relative">
                   <input
-                    id="contrasena"
                     type={showPassword ? 'text' : 'password'}
                     name="contrasena"
                     value={formData.contrasena}
                     onChange={handleChange}
-                    placeholder="••••••••"
+                    placeholder="Contraseña"
                     className={`w-full rounded-3xl border ${errores.contrasena ? 'border-red-500' : 'border-slate-300'} bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:ring-2 ${errores.contrasena ? 'focus:ring-red-200' : 'focus:border-amber-500 focus:ring-amber-200'}`}
                     disabled={loading}
                   />
@@ -235,7 +192,6 @@ export default function Registro() {
                   </button>
                 </div>
 
-                {/* Requisitos de contraseña */}
                 {formData.contrasena && (
                   <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <p className="text-xs font-semibold text-slate-700 mb-2">Requisitos:</p>
@@ -244,16 +200,16 @@ export default function Registro() {
                         {requisitos.longitud ? '✓' : '✗'} Mínimo 8 caracteres
                       </p>
                       <p className={requisitos.mayuscula ? 'text-green-600' : 'text-red-600'}>
-                        {requisitos.mayuscula ? '✓' : '✗'} Una mayúscula (A-Z)
+                        {requisitos.mayuscula ? '✓' : '✗'} Una mayúscula
                       </p>
                       <p className={requisitos.minuscula ? 'text-green-600' : 'text-red-600'}>
-                        {requisitos.minuscula ? '✓' : '✗'} Una minúscula (a-z)
+                        {requisitos.minuscula ? '✓' : '✗'} Una minúscula
                       </p>
                       <p className={requisitos.numero ? 'text-green-600' : 'text-red-600'}>
-                        {requisitos.numero ? '✓' : '✗'} Un número (0-9)
+                        {requisitos.numero ? '✓' : '✗'} Un número
                       </p>
                       <p className={requisitos.especial ? 'text-green-600' : 'text-red-600'}>
-                        {requisitos.especial ? '✓' : '✗'} Carácter especial (!@#$%)
+                        {requisitos.especial ? '✓' : '✗'} Carácter especial
                       </p>
                     </div>
                   </div>
@@ -264,19 +220,15 @@ export default function Registro() {
                 )}
               </div>
 
-              {/* Confirmar Contraseña */}
+              {/* Confirmar */}
               <div>
-                <label htmlFor="confirmarContrasena" className="text-sm font-medium text-slate-700 block mb-2">
-                  Confirmar contraseña
-                </label>
                 <div className="relative">
                   <input
-                    id="confirmarContrasena"
                     type={showConfirmPassword ? 'text' : 'password'}
                     name="confirmarContrasena"
                     value={formData.confirmarContrasena}
                     onChange={handleChange}
-                    placeholder="••••••••"
+                    placeholder="Confirmar contraseña"
                     className={`w-full rounded-3xl border ${errores.confirmarContrasena ? 'border-red-500' : 'border-slate-300'} bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:ring-2 ${errores.confirmarContrasena ? 'focus:ring-red-200' : 'focus:border-amber-500 focus:ring-amber-200'}`}
                     disabled={loading}
                   />
@@ -299,21 +251,11 @@ export default function Registro() {
                 disabled={loading}
                 className="w-full rounded-3xl bg-slate-900 px-5 py-3 text-base font-semibold text-white transition hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed mt-6 flex items-center justify-center gap-2"
               >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Registrando...
-                  </>
-                ) : (
-                  'Crear cuenta'
-                )}
+                {loading ? 'Registrando…' : 'Crear cuenta'}
               </button>
             </form>
 
-            {/* Enlace de Login */}
+            {/* Login */}
             <div className="mt-6 text-center">
               <p className="text-slate-600 text-sm">
                 ¿Ya tienes cuenta?{' '}
@@ -323,10 +265,10 @@ export default function Registro() {
               </p>
             </div>
 
-            {/* Términos */}
+            {/* Nota */}
             <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-4 text-slate-600">
               <p className="text-xs">
-                Al registrarte, aceptas nuestros términos de servicio y política de privacidad.
+                Tus datos se usan solo para gestionar tu cuenta y pedidos.
               </p>
             </div>
           </section>

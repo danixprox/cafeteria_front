@@ -1,23 +1,31 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { login } from '../../services/api';
-import { validarLogin } from '../../utils/validation';
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { login } from "../../services/api";
+import { validarLogin } from "../../utils/validation";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [tiempoRestante, setTiempoRestante] = useState(0);
+  const [bloqueado, setBloqueado] = useState(false);
+
+  // 🔹 NUEVO: formatear tiempo
+  const formatearTiempo = (segundos) => {
+    const min = Math.floor(segundos / 60);
+    const sec = segundos % 60;
+    return `${min}:${sec.toString().padStart(2, "0")}`;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
-    // Validar campos
     const validacion = validarLogin(email, password);
     if (!validacion.valido) {
       setError(validacion.errores[0]);
@@ -27,63 +35,91 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Llamar al servicio de API
       const datos = await login(email, password);
-      
-      // Guardar en localStorage
-      localStorage.setItem('usuario', JSON.stringify(datos));
-      localStorage.setItem('id_usuario', datos.id_usuario);
-      localStorage.setItem('nombre_usuario', datos.nombre);
-      localStorage.setItem('rol_usuario', datos.rol);
+
+      localStorage.setItem("usuario", JSON.stringify(datos.usuario));
+      localStorage.setItem("id_usuario", datos.usuario.id);
+      localStorage.setItem("nombre_usuario", datos.usuario.nombre);
+      localStorage.setItem("rol_usuario", datos.usuario.rol);
       if (datos.token) {
-        localStorage.setItem('token', datos.token);
+        localStorage.setItem("token", datos.token);
       }
 
-      setSuccess(`¡Bienvenido ${datos.nombre}!`);
-      // Redirigir según el rol
+      setSuccess(`Bienvenido, ${datos.usuario.nombre}`);
+
       setTimeout(() => {
-        if (datos.rol === 'Administrador') {
-          navigate('/admin');
-        } else if (datos.rol === 'Empleado') {
-          navigate('/empleado');
+        const rol = (datos.usuario.rol || "").toLowerCase().trim();
+
+        if (rol.includes("admin")) {
+          navigate("/admin");
+        } else if (rol.includes("empleado")) {
+          navigate("/empleado");
         } else {
-          navigate('/cliente');
+          navigate("/cliente");
         }
-      }, 1500);
+      }, 1200);
     } catch (err) {
-      setError(err.message || 'Error al iniciar sesión');
+      const mensaje = err.message || "Error al iniciar sesión";
+
+      // 🔒 detectar bloqueo
+      if (
+        mensaje.includes("Demasiados intentos") ||
+        mensaje.includes("bloqueada")
+      ) {
+        setBloqueado(true);
+        setTiempoRestante(600); // 10 min
+      }
+
+      setError(mensaje);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (!bloqueado || tiempoRestante <= 0) return;
+
+    const intervalo = setInterval(() => {
+      setTiempoRestante((prev) => {
+        if (prev <= 1) {
+          setBloqueado(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(intervalo);
+  }, [bloqueado, tiempoRestante]);
+
   return (
     <div className="min-h-screen from-amber-100 via-slate-50 to-amber-200 px-4 py-10">
       <div className="mx-auto max-w-5xl overflow-hidden bg-white shadow-2xl ring-1 ring-slate-200">
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          {/* Sección Izquierda - Desktop */}
+          {/* IZQUIERDA */}
           <section className="hidden bg-slate-900 p-10 text-white lg:block">
             <div className="flex h-full flex-col justify-between">
               <div>
                 <span className="inline-flex rounded-full bg-amber-200/15 px-3 py-1 text-xs uppercase tracking-[0.32em] text-amber-200">
-                  Cafetería Pro
+                  Donde Juanita
                 </span>
                 <h2 className="mt-8 text-4xl font-semibold leading-tight">
-                  Bienvenido de vuelta
+                  Bienvenido
                 </h2>
                 <p className="mt-5 max-w-sm text-slate-300">
-                  Inicia sesión para acceder al panel de administración y gestionar tu cafetería.
+                  Accede a tu cuenta para ver tu panel, gestionar tus pedidos o
+                  continuar tu experiencia.
                 </p>
               </div>
 
               <div className="space-y-5">
                 <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-                  <p className="text-sm uppercase tracking-[0.28em] text-amber-200">Credenciales Demo</p>
-                  <p className="mt-4 text-sm text-white">
-                    <strong>Email:</strong> admin@cafeteria.com
+                  <p className="text-sm uppercase tracking-[0.28em] text-amber-200">
+                    Acceso seguro
                   </p>
-                  <p className="mt-2 text-sm text-white">
-                    <strong>Contraseña:</strong> Admin@123
+                  <p className="mt-4 text-sm text-white">
+                    Usa tu correo y contraseña registrados para ingresar al
+                    sistema.
                   </p>
                 </div>
 
@@ -97,7 +133,7 @@ export default function Login() {
             </div>
           </section>
 
-          {/* Sección Derecha - Formulario */}
+          {/* FORM */}
           <section className="p-8 sm:p-10">
             <Link
               to="/"
@@ -107,18 +143,28 @@ export default function Login() {
             </Link>
 
             <div className="mb-8">
-              <p className="text-sm uppercase tracking-[0.32em] text-amber-600">Cafetería Pro</p>
-              <h1 className="mt-4 text-3xl font-semibold text-slate-900 sm:text-4xl">Iniciar sesión</h1>
+              <p className="text-sm uppercase tracking-[0.32em] text-amber-600">
+                Iniciar sesión
+              </p>
+              <h1 className="mt-4 text-3xl font-semibold text-slate-900 sm:text-4xl">
+                Accede a tu cuenta
+              </h1>
               <p className="mt-3 text-slate-600">
-                Accede con tu correo y contraseña para continuar.
+                Ingresa tus datos para continuar.
               </p>
             </div>
 
-            {/* Alertas */}
             {error && (
               <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-4">
                 <p className="text-sm text-red-700">❌ {error}</p>
               </div>
+            )}
+
+            {/* 🔥 NUEVO: contador */}
+            {bloqueado && (
+              <p className="text-red-600 text-sm mb-4">
+                ⏳ Intenta nuevamente en {formatearTiempo(tiempoRestante)}
+              </p>
             )}
 
             {success && (
@@ -127,84 +173,67 @@ export default function Login() {
               </div>
             )}
 
-            {/* Formulario */}
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email */}
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-slate-700">
+                <label className="text-sm font-medium text-slate-700">
                   Correo electrónico
                 </label>
                 <input
-                  id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu.email@ejemplo.com"
-                  className="w-full rounded-3xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                  placeholder="tu@email.com"
+                  className="w-full rounded-3xl border border-slate-300 bg-slate-50 px-4 py-3"
                   disabled={loading}
                 />
               </div>
 
-              {/* Contraseña */}
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-slate-700">
+                <label className="text-sm font-medium text-slate-700">
                   Contraseña
                 </label>
                 <div className="relative">
                   <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full rounded-3xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                    className="w-full rounded-3xl border border-slate-300 bg-slate-50 px-4 py-3"
                     disabled={loading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-3 text-slate-500 hover:text-slate-700 text-lg"
+                    className="absolute right-4 top-3 text-slate-500"
                   >
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                    {showPassword ? "👁️" : "👁️‍🗨️"}
                   </button>
                 </div>
               </div>
 
-              {/* Botón */}
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full rounded-3xl bg-slate-900 px-5 py-3 text-base font-semibold text-white transition hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                disabled={loading || bloqueado}
+                className="w-full rounded-3xl bg-slate-900 px-5 py-3 text-white font-semibold"
               >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Cargando...
-                  </>
-                ) : (
-                  'Entrar'
-                )}
+                {loading ? "Ingresando..." : "Entrar"}
               </button>
+              <div className="mt-3 text-right">
+                <Link
+                  to="/recuperar"
+                  className="text-sm text-amber-600 hover:underline"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
             </form>
 
-            {/* Enlace de Registro */}
             <div className="mt-8 text-center">
               <p className="text-slate-600 text-sm">
-                ¿No tienes cuenta?{' '}
-                <Link to="/registro" className="font-semibold text-amber-600 hover:text-amber-700">
-                  Regístrate aquí
+                ¿No tienes cuenta?{" "}
+                <Link to="/registro" className="font-semibold text-amber-600">
+                  Crear cuenta
                 </Link>
-              </p>
-            </div>
-
-            {/* Información adicional */}
-            <div className="mt-10 rounded-3xl border border-slate-200 bg-slate-50 p-5 text-slate-600">
-              <p className="text-sm font-semibold text-slate-900">💡 Consejo</p>
-              <p className="mt-2 text-sm">
-                Usa las credenciales de demo para probar la aplicación. Contacta al administrador para crear una cuenta.
               </p>
             </div>
           </section>

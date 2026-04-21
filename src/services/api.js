@@ -274,3 +274,40 @@ export const obtenerCliente = async (clienteId) => {
     throw error;
   }
 };
+  
+export const recuperarPassword = async (correo) => {
+  const response = await fetch(`${API_URL}/api/recuperar-password/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ correo }),
+  });
+
+  return await response.json();
+};
+
+export const verificarCodigo = async (correo, codigo) => {
+  const response = await fetch(`${API_URL}/api/verificar-codigo/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ correo, codigo }),
+  });
+
+  return await response.json();
+};
+
+export const nuevaPassword = async (correo, password) => {
+  const response = await fetch(`${API_URL}/api/nueva-password/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ correo, password }),
+  });
+
+  return await response.json();
+};
+

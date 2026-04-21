@@ -65,7 +65,7 @@ export const validarContrasena = (contrasena) => {
     mayuscula: contrasena && /[A-Z]/.test(contrasena),
     minuscula: contrasena && /[a-z]/.test(contrasena),
     numero: contrasena && /[0-9]/.test(contrasena),
-    especial: contrasena && /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(contrasena),
+    especial: contrasena && /[^A-Za-z0-9]/.test(contrasena),
   };
 
   if (!contrasena || contrasena.length === 0) {
@@ -172,10 +172,7 @@ export const validarRegistro = (datos) => {
     errores.confirmarContrasena = validacionConfirmacion.errores[0];
   }
 
-  // Validar rol
-  if (!datos.codRol || datos.codRol.trim().length === 0) {
-    errores.codRol = 'El rol es requerido';
-  }
+  // 🔥 ELIMINADO: validación de rol (ya no se usa)
 
   return {
     valido: Object.keys(errores).length === 0,
@@ -194,6 +191,6 @@ export const obtenerRequisitos = (contrasena) => {
     mayuscula: contrasena && /[A-Z]/.test(contrasena),
     minuscula: contrasena && /[a-z]/.test(contrasena),
     numero: contrasena && /[0-9]/.test(contrasena),
-    especial: contrasena && /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(contrasena),
+    especial: contrasena && /[^A-Za-z0-9]/.test(contrasena),
   };
 };
