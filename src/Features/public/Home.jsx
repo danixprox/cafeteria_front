@@ -49,7 +49,7 @@ export default function Home() {
 
           <div className="bg-white p-8 shadow-lg ring-1 ring-slate-200">
             <div className="flex h-full flex-col justify-between gap-6">
-              <div className="rounded-3xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white">
+              <div className="rounded-3xl bg-linear-to-br from-slate-900 to-slate-800 p-6 text-white">
                 <p className="text-sm uppercase tracking-[0.25em] text-amber-300">Sistema General</p>
                 <h3 className="mt-4 text-3xl font-semibold">Cafetería "Donde Juanita"</h3>
                 <p className="mt-3 text-slate-200">
@@ -98,7 +98,7 @@ export default function Home() {
           </article>
         </section>
 
-        <section className="mt-20 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-3xl p-10 text-center">
+        <section className="mt-20 bg-linear-to-r from-slate-900 to-slate-800 text-white rounded-3xl p-10 text-center">
           <h2 className="text-3xl font-bold mb-4">¿Listo para comenzar?</h2>
           <p className="text-lg text-slate-200 mb-6 max-w-2xl mx-auto">
             Crea tu cuenta ahora y accede a todas las funcionalidades de Cafetería "Donde Juanita".

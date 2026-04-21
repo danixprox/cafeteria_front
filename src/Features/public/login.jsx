@@ -35,12 +35,20 @@ export default function Login() {
       localStorage.setItem('id_usuario', datos.id_usuario);
       localStorage.setItem('nombre_usuario', datos.nombre);
       localStorage.setItem('rol_usuario', datos.rol);
+      if (datos.token) {
+        localStorage.setItem('token', datos.token);
+      }
 
       setSuccess(`¡Bienvenido ${datos.nombre}!`);
-      
-      // Redirigir después de 1.5 segundos
+      // Redirigir según el rol
       setTimeout(() => {
-        navigate('/dashboard');
+        if (datos.rol === 'Administrador') {
+          navigate('/admin');
+        } else if (datos.rol === 'Empleado') {
+          navigate('/empleado');
+        } else {
+          navigate('/cliente');
+        }
       }, 1500);
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión');
