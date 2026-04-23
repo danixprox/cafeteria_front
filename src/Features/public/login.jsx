@@ -36,12 +36,16 @@ export default function Login() {
 
     try {
       const datos = await login(email, password);
+      
       console.log("LOGIN DATA:", datos);
 
       localStorage.setItem("usuario", JSON.stringify(datos.usuario));
       localStorage.setItem("id_usuario", datos.usuario.id);
       localStorage.setItem("nombre_usuario", datos.usuario.nombre);
-      localStorage.setItem("rol_usuario", datos.usuario.rol);
+      localStorage.setItem(
+     "rol_usuario",
+      datos.usuario.cod_rol?.cod_rol || datos.usuario.rol
+     );
       if (datos.token) {
         localStorage.setItem("token", datos.token);
       }
@@ -254,3 +258,5 @@ export default function Login() {
     </div>
   );
 }
+
+

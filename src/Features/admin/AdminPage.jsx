@@ -17,11 +17,34 @@ const AdminPage = () => {
   const [empleados, setEmpleados] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [bitacora, setBitacora] = useState([]);
+  const [mostrarInventario, setMostrarInventario] = useState(false);
+  
 
   console.log("CLIENTES:", clientes);
 
   const [vista, setVista] = useState("usuarios");
   const [loading, setLoading] = useState(false);
+
+  const cambiarStock = (index, cantidad) => {
+  const nuevo = [...inventario];
+
+  nuevo[index].stock += cantidad;
+
+  if (nuevo[index].stock < 0) {
+    nuevo[index].stock = 0;
+  }
+
+  setInventario(nuevo);
+};
+
+  const [inventario, setInventario] = useState([
+  { nombre: "Café", stock: 25 },
+  { nombre: "Leche", stock: 10 },
+  { nombre: "Pan", stock: 5 },
+  { nombre: "Azúcar", stock: 0 }
+
+  
+]);
 
   const [mostrarForm, setMostrarForm] = useState(false);
   const [nuevoEmpleado, setNuevoEmpleado] = useState({
@@ -203,9 +226,16 @@ const AdminPage = () => {
               className="text-left px-4 py-2 rounded-xl text-slate-700 hover:bg-amber-100 hover:text-amber-700 transition"
             >
               Inventario
+              <button
+              onClick={() => setMostrarInventario(!mostrarInventario)}
+               className="bg-purple-600 text-white px-4 py-2 rounded"
+              >
+               📦 Inventario
+</button>
             </button>
           </div>
         </div>
+        
 
         <button
           onClick={handleLogout}
@@ -414,6 +444,69 @@ const AdminPage = () => {
       </tbody>
     </table>
   </div>
+)}
+{mostrarInventario && (
+  <section>
+    <h2 className="text-xl font-semibold mb-4 text-slate-900">
+      📦 Inventario (Admin)
+    </h2>
+
+    <div className="bg-white rounded shadow divide-y">
+
+      {inventario.map((item, index) => {
+
+        let estado = "Disponible";
+        let color = "text-green-600";
+
+        if (item.stock <= 5 && item.stock > 0) {
+          estado = "Bajo";
+          color = "text-yellow-600";
+        }
+
+        if (item.stock === 0) {
+          estado = "Sin stock";
+          color = "text-red-600";
+        }
+
+        return (
+          <div key={index} className="p-4 flex justify-between items-center">
+
+            {/* INFO */}
+            <div>
+              <p className="font-semibold">{item.nombre}</p>
+              <p className="text-sm text-slate-600">
+                Stock: {item.stock}
+              </p>
+            </div>
+
+            {/* CONTROLES */}
+            <div className="flex items-center gap-3">
+
+              <button
+                onClick={() => cambiarStock(index, -1)}
+                className="bg-red-500 text-white px-2 py-1 rounded"
+              >
+                -
+              </button>
+
+              <button
+                onClick={() => cambiarStock(index, +1)}
+                className="bg-green-600 text-white px-2 py-1 rounded"
+              >
+                +
+              </button>
+
+              <span className={`text-sm font-semibold ${color}`}>
+                {estado}
+              </span>
+
+            </div>
+          </div>
+        );
+      })}
+
+    </div>
+  </section>
 )}
 
        </main>

@@ -11,9 +11,7 @@ const ProtectedRoute = ({ children, rolesPermitidos }) => {
     return <Navigate to="/login" replace />;
   }
 
-  const tienePermiso = rolesPermitidos.some(r =>
-    rol.includes(r)
-  );
+  const tienePermiso = rolesPermitidos.includes(rol);
 
   if (!tienePermiso) {
     return <Navigate to="/cliente" replace />;
