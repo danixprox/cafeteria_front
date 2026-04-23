@@ -36,6 +36,7 @@ export default function Login() {
 
     try {
       const datos = await login(email, password);
+      console.log("LOGIN DATA:", datos);
 
       localStorage.setItem("usuario", JSON.stringify(datos.usuario));
       localStorage.setItem("id_usuario", datos.usuario.id);

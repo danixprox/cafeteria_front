@@ -73,11 +73,24 @@ const AdminPage = () => {
     }
   };
 
-  // 🚪 logout
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
+   // 🚪 logout
+   const handleLogout = async () => {
+  const token = localStorage.getItem("token");
+
+  try {
+    await fetch("http://127.0.0.1:8000/api/logout/", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch (error) {
+    console.error("Error logout:", error);
+  }
+
+  localStorage.clear();
+  navigate("/login");
+};
 
   const handleCrearEmpleado = async () => {
   try {
@@ -367,10 +380,10 @@ const AdminPage = () => {
             key={c.cod_cliente}
             className="text-center border-t hover:bg-slate-50"
           >
-            <td>{c.usuario?.nombre || c.nombre}</td>
-            <td>{c.usuario?.correo || c.correo}</td>
-            <td>{c.cliente?.telefono || '-'}</td>
-            <td>{c.cliente?.direccion || '-'}</td>
+               <td>{c.usuario?.nombre}</td>
+               <td>{c.usuario?.correo}</td>
+               <td>{c.telefono}</td>
+               <td>{c.direccion}</td>
           </tr>
         ))}
       </tbody>
