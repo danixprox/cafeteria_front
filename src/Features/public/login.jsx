@@ -48,16 +48,27 @@ export default function Login() {
       setSuccess(`Bienvenido, ${datos.usuario.nombre}`);
 
       setTimeout(() => {
-        const rol = (datos.usuario.rol || "").toLowerCase().trim();
+        console.log("DATOS COMPLETOS:", datos);
+        console.log("ROL RAW:", datos.usuario.cod_rol);
+        console.log("ROL ALT:", datos.usuario.rol);
 
-        if (rol.includes("admin")) {
+        const rolObj = datos.usuario.cod_rol;
+
+        const rol =
+          typeof rolObj === "object"
+            ? rolObj.cod_rol
+            : rolObj || datos.usuario.rol;
+
+        console.log("ROL FINAL:", rol);
+
+        if (rol === "admin") {
           navigate("/admin");
-        } else if (rol.includes("empleado")) {
+        } else if (["emp", "mesero", "cocinero"].includes(rol)) {
           navigate("/empleado");
         } else {
           navigate("/cliente");
         }
-      }, 1200);
+      }, 1000);
     } catch (err) {
       const mensaje = err.message || "Error al iniciar sesión";
 

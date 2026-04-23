@@ -299,6 +299,20 @@ export const verificarCodigo = async (correo, codigo) => {
   return await response.json();
 };
 
+export const obtenerBitacora = async () => {
+  const token = localStorage.getItem("token");
+
+  const res = await fetch("http://127.0.0.1:8000/api/bitacora/", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) throw new Error("Error al obtener bitácora");
+
+  return await res.json();
+};
+
 export const nuevaPassword = async (correo, password) => {
   const response = await fetch(`${API_URL}/api/nueva-password/`, {
     method: 'POST',
