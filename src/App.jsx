@@ -13,6 +13,12 @@ import RecuperarPassword from './Features/public/RecuperarPassword';
 
 import './App.css';
 
+import Salas from './pages/Cliente/Salas';
+import DetalleSala from './pages/Cliente/DetalleSala';
+import MisReservas from './pages/Cliente/MisReservas';
+
+import DashboardEmpleado from './pages/Empleado/DashboardEmpleado';
+
 function App() {
   return (
     <Router>
@@ -34,12 +40,21 @@ function App() {
           }
         />
 
+
         {/* 👨‍🍳 EMPLEADO */}
         <Route
           path="/empleado"
           element={
             <ProtectedRoute rolesPermitidos={['emp', 'mesero', 'cocinero']}>
               <EmployeePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/empleado/reservas"
+          element={
+            <ProtectedRoute rolesPermitidos={['emp', 'mesero', 'cocinero']}>
+              <DashboardEmpleado />
             </ProtectedRoute>
           }
         />
@@ -50,6 +65,30 @@ function App() {
           element={
             <ProtectedRoute rolesPermitidos={['cliente']}>
               <ClientPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cliente/salas"
+          element={
+            <ProtectedRoute rolesPermitidos={['cliente']}>
+              <Salas />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cliente/salas/:id"
+          element={
+            <ProtectedRoute rolesPermitidos={['cliente']}>
+              <DetalleSala />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cliente/mis-reservas"
+          element={
+            <ProtectedRoute rolesPermitidos={['cliente']}>
+              <MisReservas />
             </ProtectedRoute>
           }
         />

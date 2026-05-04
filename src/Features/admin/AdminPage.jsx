@@ -5,10 +5,13 @@ import {
   eliminarUsuario,
   obtenerEmpleados,
   obtenerClientes,
+  obtenerBitacora
 } from "../../services/api";
 
+import GestionSalas from "../../pages/Admin/GestionSalas";
+import GestionMesas from "../../pages/Admin/GestionMesas";
+
 import "../../App.css";
-import { obtenerBitacora } from "../../services/api";
 
 const AdminPage = () => {
   const navigate = useNavigate();
@@ -24,6 +27,7 @@ const AdminPage = () => {
 
   const [vista, setVista] = useState("usuarios");
   const [loading, setLoading] = useState(false);
+  const [salaIdParaMesas, setSalaIdParaMesas] = useState(null);
 
   const cambiarStock = (index, cantidad) => {
   const nuevo = [...inventario];
@@ -221,17 +225,27 @@ const AdminPage = () => {
               Bitácora
             </button>
 
-            <button
+            <div
               onClick={() => setVista("inventario")}
-              className="text-left px-4 py-2 rounded-xl text-slate-700 hover:bg-amber-100 hover:text-amber-700 transition"
+              className="text-left px-4 py-2 rounded-xl text-slate-700 hover:bg-amber-100 hover:text-amber-700 transition cursor-pointer"
             >
               Inventario
               <button
-              onClick={() => setMostrarInventario(!mostrarInventario)}
-               className="bg-purple-600 text-white px-4 py-2 rounded"
+              onClick={(e) => {
+                e.stopPropagation(); // Avoid triggering the outer div click
+                setMostrarInventario(!mostrarInventario);
+              }}
+               className="bg-purple-600 text-white px-4 py-2 rounded mt-2 w-full text-left"
               >
                📦 Inventario
-</button>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setVista("salas")}
+              className="text-left px-4 py-2 rounded-xl text-indigo-700 bg-indigo-50 font-bold hover:bg-indigo-100 transition mt-4"
+            >
+              🚪 Gestión de Salas
             </button>
           </div>
         </div>
@@ -507,6 +521,22 @@ const AdminPage = () => {
 
     </div>
   </section>
+)}
+
+{vista === "salas" && (
+  <GestionSalas 
+    onVerMesas={(id) => {
+      setSalaIdParaMesas(id);
+      setVista("mesas");
+    }} 
+  />
+)}
+
+{vista === "mesas" && salaIdParaMesas && (
+  <GestionMesas 
+    idSala={salaIdParaMesas} 
+    onVolver={() => setVista("salas")} 
+  />
 )}
 
        </main>
