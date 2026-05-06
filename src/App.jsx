@@ -16,6 +16,7 @@ import './App.css';
 import Salas from './pages/Cliente/Salas';
 import DetalleSala from './pages/Cliente/DetalleSala';
 import MisReservas from './pages/Cliente/MisReservas';
+import ClienteLayout from './pages/Cliente/ClienteLayout';
 
 import DashboardEmpleado from './pages/Empleado/DashboardEmpleado';
 
@@ -64,34 +65,16 @@ function App() {
           path="/cliente"
           element={
             <ProtectedRoute rolesPermitidos={['cliente']}>
-              <ClientPage />
+              <ClienteLayout />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/cliente/salas"
-          element={
-            <ProtectedRoute rolesPermitidos={['cliente']}>
-              <Salas />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/cliente/salas/:id"
-          element={
-            <ProtectedRoute rolesPermitidos={['cliente']}>
-              <DetalleSala />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/cliente/mis-reservas"
-          element={
-            <ProtectedRoute rolesPermitidos={['cliente']}>
-              <MisReservas />
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route index element={<Navigate to="salas" replace />} />
+          <Route path="salas" element={<Salas />} />
+          <Route path="salas/:id" element={<DetalleSala />} />
+          <Route path="mis-reservas" element={<MisReservas />} />
+          <Route path="perfil" element={<ClientPage />} />
+        </Route>
 
         {/* 🚫 Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

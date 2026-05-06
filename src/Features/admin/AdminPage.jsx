@@ -10,6 +10,7 @@ import {
 
 import GestionSalas from "../../pages/Admin/GestionSalas";
 import GestionMesas from "../../pages/Admin/GestionMesas";
+import AdminSidebar from "./AdminSidebar";
 
 import "../../App.css";
 
@@ -188,79 +189,18 @@ const AdminPage = () => {
 };
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-slate-200 p-5 flex flex-col justify-between shadow-sm">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900 mb-8">
-            Donde Juanita
-          </h2>
-
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={() => setVista("usuarios")}
-              className="text-left px-4 py-2 rounded-xl text-slate-700 hover:bg-amber-100 hover:text-amber-700 transition"
-            >
-              Usuarios
-            </button>
-
-            <button
-              onClick={() => setVista("clientes")}
-              className="text-left px-4 py-2 rounded-xl text-slate-700 hover:bg-amber-100 hover:text-amber-700 transition"
-            >
-              Clientes
-            </button>
-
-            <button
-              onClick={() => setVista("empleados")}
-              className="text-left px-4 py-2 rounded-xl text-slate-700 hover:bg-amber-100 hover:text-amber-700 transition"
-            >
-              Empleados
-            </button>
-
-            <button
-              onClick={() => setVista("bitacora")}
-              className="text-left px-4 py-2 rounded-xl text-slate-700 hover:bg-amber-100 hover:text-amber-700 transition"
-            >
-              Bitácora
-            </button>
-
-            <div
-              onClick={() => setVista("inventario")}
-              className="text-left px-4 py-2 rounded-xl text-slate-700 hover:bg-amber-100 hover:text-amber-700 transition cursor-pointer"
-            >
-              Inventario
-              <button
-              onClick={(e) => {
-                e.stopPropagation(); // Avoid triggering the outer div click
-                setMostrarInventario(!mostrarInventario);
-              }}
-               className="bg-purple-600 text-white px-4 py-2 rounded mt-2 w-full text-left"
-              >
-               📦 Inventario
-              </button>
-            </div>
-
-            <button
-              onClick={() => setVista("salas")}
-              className="text-left px-4 py-2 rounded-xl text-indigo-700 bg-indigo-50 font-bold hover:bg-indigo-100 transition mt-4"
-            >
-              🚪 Gestión de Salas
-            </button>
-          </div>
-        </div>
-        
-
-        <button
-          onClick={handleLogout}
-          className="bg-amber-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-amber-700 transition"
-        >
-          Cerrar sesión
-        </button>
-      </aside>
+    <div className="min-h-screen flex flex-col bg-slate-50 relative">
+      {/* HEADER / DROPDOWN MENU */}
+      <AdminSidebar 
+        vista={vista} 
+        setVista={setVista} 
+        mostrarInventario={mostrarInventario} 
+        setMostrarInventario={setMostrarInventario} 
+        handleLogout={handleLogout} 
+      />
 
       {/* CONTENIDO */}
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-6 md:p-8 overflow-y-auto w-full max-w-7xl mx-auto">
         <h1 className="text-2xl font-semibold text-slate-900 mb-6 capitalize">
           {vista}
         </h1>

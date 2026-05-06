@@ -12,51 +12,12 @@ const ClientPage = () => {
         setUsuario(user);
     }, []);
 
-    // 🔥 LOGOUT CON BITÁCORA
-    const handleLogout = async () => {
-        const token = localStorage.getItem("token");
-
-        try {
-            await fetch("http://127.0.0.1:8000/api/logout/", {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-        } catch (error) {
-            console.error("Error logout:", error);
-        }
-
-        localStorage.clear();
-        navigate('/login');
-    };
-
     return (
-        <div className="min-h-screen bg-slate-50">
-
-            {/* HEADER */}
-            <header className="bg-white border-b border-slate-200">
-                <div className="mx-auto max-w-6xl px-4 py-5 flex items-center justify-between">
-                    
-                    <div>
-                        <h1 className="text-3xl font-semibold text-slate-900">
-                            Panel de Cliente
-                        </h1>
-                        <p className="text-sm text-slate-600">
-                            Bienvenido, {usuario?.nombre}
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={handleLogout}
-                        className="rounded-full bg-amber-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
-                    >
-                        Cerrar Sesión
-                    </button>
-                </div>
-            </header>
-            
-            <main className="mx-auto max-w-6xl px-4 py-12 lg:py-16 space-y-10">
+        <div className="mx-auto max-w-6xl px-4 py-8 lg:py-12 space-y-10 w-full">
+            <div className="mb-4">
+                <h1 className="text-3xl font-black text-slate-800">Panel de Cliente</h1>
+                <p className="text-sm text-slate-600">Bienvenido, {usuario?.nombre}</p>
+            </div>
 
                 {/* PERFIL */}
                 <section className="bg-white rounded-xl shadow p-6">
@@ -124,7 +85,6 @@ const ClientPage = () => {
                     </button>
                 </div>
 
-            </main>
         </div>
     );
 };

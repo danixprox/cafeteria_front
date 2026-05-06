@@ -79,15 +79,71 @@ const DetalleSala = () => {
         }
     };
 
-    if (loading) return <div className="p-10 text-center">Cargando detalles...</div>;
+    const getImageUrl = (imagePath) => {
+        if (!imagePath) return null;
+        if (imagePath.startsWith('http')) return imagePath;
+        return `http://localhost:8000${imagePath}`;
+    };
+
+    const handleImageError = (e) => {
+        e.target.src = 'https://via.placeholder.com/600x400?text=Imagen+No+Disponible';
+    };
+
+    const getBadgeDisponibilidad = (estado) => {
+        const badges = {
+            'disponible': 'bg-green-100 text-green-800',
+            'no_disponible': 'bg-red-100 text-red-800',
+            'mantenimiento': 'bg-yellow-100 text-yellow-800',
+            'reservada': 'bg-blue-100 text-blue-800'
+        };
+        const text = {
+            'disponible': 'Disponible',
+            'no_disponible': 'No disponible',
+            'mantenimiento': 'En mantenimiento',
+            'reservada': 'Reservada'
+        };
+        return <span className={`px-3 py-1 rounded-full text-xs font-black uppercase shadow-sm ${badges[estado] || 'bg-gray-100'}`}>{text[estado] || estado}</span>;
+    };
+
+    if (loading) return <div className="p-10 text-center text-slate-500 font-bold">Cargando detalles de la sala...</div>;
     if (!sala) return <div className="p-10 text-center text-red-500">{error}</div>;
 
-    return (
-        <div className="p-8 max-w-6xl mx-auto">
-            <h1 className="text-3xl font-bold mb-2">{sala.nombre}</h1>
-            <p className="text-gray-600 mb-6">{sala.descripcion}</p>
+    const puedeReservar = sala.disponibilidad === 'disponible';
 
-            {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-6">{error}</div>}
+    return (
+        <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen bg-slate-50">
+            {/* Cabecera con Imágenes */}
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 bg-slate-100 p-2 h-[400px]">
+                    <div className="col-span-1 md:col-span-2 lg:col-span-2 h-full rounded-2xl overflow-hidden relative">
+                        {sala.imagen_principal ? (
+                            <img src={getImageUrl(sala.imagen_principal)} onError={handleImageError} alt={sala.nombre} className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full bg-slate-200 flex items-center justify-center font-bold text-slate-400">Sin Imagen Principal</div>
+                        )}
+                        <div className="absolute top-4 left-4">
+                            {getBadgeDisponibilidad(sala.disponibilidad)}
+                        </div>
+                    </div>
+                    <div className="hidden lg:flex flex-col gap-2 h-full overflow-y-auto pr-1 custom-scrollbar">
+                        {sala.galeria && sala.galeria.length > 0 ? (
+                            sala.galeria.map(img => (
+                                <img key={img.id} src={getImageUrl(img.imagen)} onError={handleImageError} alt="Galeria" className="w-full h-48 object-cover rounded-2xl" />
+                            ))
+                        ) : (
+                            <div className="w-full h-full bg-slate-200 flex items-center justify-center rounded-2xl font-bold text-slate-400">Sin Galería</div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="p-8">
+                    <h1 className="text-4xl font-black text-slate-800 mb-2">{sala.nombre}</h1>
+                    <p className="text-indigo-600 font-bold tracking-wider uppercase mb-4">{sala.tematica || 'Sin Temática'}</p>
+                    <p className="text-slate-600 text-lg leading-relaxed">{sala.descripcion}</p>
+                </div>
+            </div>
+
+            {error && <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-8 font-bold border border-red-200">{error}</div>}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1 space-y-6">
@@ -144,10 +200,10 @@ const DetalleSala = () => {
                         
                         <button 
                             onClick={handleReservar}
-                            disabled={!mesaSeleccionada || !horarioSeleccionado}
-                            className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+                            disabled={!mesaSeleccionada || !horarioSeleccionado || !puedeReservar}
+                            className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed transition shadow-sm text-lg"
                         >
-                            Confirmar Reserva
+                            {puedeReservar ? 'Confirmar Reserva' : 'Sala no disponible'}
                         </button>
                     </div>
                 </div>

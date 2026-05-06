@@ -6,11 +6,29 @@ const GestionSalas = ({ onVerMesas }) => {
     const [loading, setLoading] = useState(true);
     const [mostrarForm, setMostrarForm] = useState(false);
     const [editandoId, setEditandoId] = useState(null);
-    const [formData, setFormData] = useState({
-        nombre: '',
-        descripcion: '',
-        capacidad_total: 0
-    });
+    
+    // Form state
+    const [nombre, setNombre] = useState('');
+    const [tematica, setTematica] = useState('');
+    const [descripcion, setDescripcion] = useState('');
+    const [capacidadTotal, setCapacidadTotal] = useState(0);
+    const [disponibilidad, setDisponibilidad] = useState('disponible');
+    const [imagenPrincipal, setImagenPrincipal] = useState(null);
+    const [galeriaNuevas, setGaleriaNuevas] = useState([]);
+
+    // Preview state para edición
+    const [previewPrincipal, setPreviewPrincipal] = useState('');
+    const [galeriaExistente, setGaleriaExistente] = useState([]);
+
+    const getImageUrl = (imagePath) => {
+        if (!imagePath) return null;
+        if (imagePath.startsWith('http')) return imagePath;
+        return `http://localhost:8000${imagePath}`;
+    };
+
+    const handleImageError = (e) => {
+        e.target.src = 'https://via.placeholder.com/600x400?text=Imagen+No+Disponible';
+    };
 
     const cargarSalas = () => {
         setLoading(true);
@@ -24,154 +42,292 @@ const GestionSalas = ({ onVerMesas }) => {
         cargarSalas();
     }, []);
 
-    const handleCambiarEstado = async (id, estadoActual) => {
+    const resetForm = () => {
+        setNombre('');
+        setTematica('');
+        setDescripcion('');
+        setCapacidadTotal(0);
+        setDisponibilidad('disponible');
+        setImagenPrincipal(null);
+        setGaleriaNuevas([]);
+        setPreviewPrincipal('');
+        setGaleriaExistente([]);
+        setEditandoId(null);
+        setMostrarForm(false);
+    };
+
+    const handleEditarClick = (sala) => {
+        setNombre(sala.nombre);
+        setTematica(sala.tematica || '');
+        setDescripcion(sala.descripcion || '');
+        setCapacidadTotal(sala.capacidad_total);
+        setDisponibilidad(sala.disponibilidad || 'disponible');
+        setPreviewPrincipal(sala.imagen_principal || '');
+        setGaleriaExistente(sala.galeria || []);
+        
+        setImagenPrincipal(null);
+        setGaleriaNuevas([]);
+        
+        setEditandoId(sala.id);
+        setMostrarForm(true);
+    };
+
+    const eliminarImagenExistente = async (imagenId) => {
+        if(!window.confirm('¿Seguro que deseas eliminar esta imagen de la galería?')) return;
         try {
-            await salasService.cambiarEstado(id, !estadoActual);
-            cargarSalas();
+            await salasService.eliminarImagen(editandoId, imagenId);
+            setGaleriaExistente(prev => prev.filter(img => img.id !== imagenId));
         } catch (error) {
-            alert(error.response?.data?.error || 'Error al cambiar estado');
+            alert('Error al eliminar imagen');
         }
     };
 
     const handleGuardarSala = async (e) => {
         e.preventDefault();
+        
+        if(!nombre || !tematica || capacidadTotal <= 0 || !disponibilidad) {
+            return alert('Completa los campos obligatorios correctamente.');
+        }
+
+        const formData = new FormData();
+        formData.append('nombre', nombre);
+        formData.append('tematica', tematica);
+        formData.append('descripcion', descripcion);
+        formData.append('capacidad_total', capacidadTotal);
+        formData.append('disponibilidad', disponibilidad);
+        if (imagenPrincipal) {
+            formData.append('imagen_principal', imagenPrincipal);
+        }
+
         try {
+            let salaId = editandoId;
             if (editandoId) {
                 await salasService.update(editandoId, formData);
-                alert('Sala editada correctamente');
+                alert('Sala actualizada correctamente');
             } else {
-                await salasService.create(formData);
+                const res = await salasService.create(formData);
+                salaId = res.data.id;
                 alert('Sala creada correctamente');
             }
-            setMostrarForm(false);
-            setEditandoId(null);
-            setFormData({ nombre: '', descripcion: '', capacidad_total: 0 });
+
+            // Subir imágenes de galería si las hay
+            if (galeriaNuevas.length > 0 && salaId) {
+                const galeriaData = new FormData();
+                Array.from(galeriaNuevas).forEach(file => {
+                    galeriaData.append('galeria', file);
+                });
+                await salasService.subirGaleria(salaId, galeriaData);
+            }
+
+            resetForm();
             cargarSalas();
         } catch (error) {
             alert(error.response?.data?.error || 'Error al guardar sala');
         }
     };
 
-    const handleEditarClick = (sala) => {
-        setFormData({
-            nombre: sala.nombre,
-            descripcion: sala.descripcion,
-            capacidad_total: sala.capacidad_total
-        });
-        setEditandoId(sala.id);
-        setMostrarForm(true);
+    const getBadgeDisponibilidad = (estado) => {
+        const badges = {
+            'disponible': 'bg-green-100 text-green-800',
+            'no_disponible': 'bg-red-100 text-red-800',
+            'mantenimiento': 'bg-yellow-100 text-yellow-800',
+            'reservada': 'bg-blue-100 text-blue-800'
+        };
+        const text = {
+            'disponible': 'Disponible',
+            'no_disponible': 'No disponible',
+            'mantenimiento': 'En mantenimiento',
+            'reservada': 'Reservada'
+        };
+        return <span className={`px-2 py-1 rounded-full text-xs font-bold ${badges[estado] || 'bg-gray-100'}`}>{text[estado] || estado}</span>;
     };
 
-    const handleCancelarForm = () => {
-        setMostrarForm(false);
-        setEditandoId(null);
-        setFormData({ nombre: '', descripcion: '', capacidad_total: 0 });
-    };
-
-    if (loading) return <div className="p-10 text-center">Cargando gestión de salas...</div>;
+    if (loading) return <div className="p-10 text-center text-slate-500 font-bold">Cargando gestión de salas...</div>;
 
     return (
         <div className="w-full">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">Gestión de Salas Temáticas</h2>
+                <h2 className="text-2xl font-black text-slate-800">Gestión de Salas Temáticas</h2>
                 <button 
-                    onClick={() => { setMostrarForm(!mostrarForm); setEditandoId(null); setFormData({ nombre: '', descripcion: '', capacidad_total: 0 }); }}
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700"
+                    onClick={() => { resetForm(); setMostrarForm(true); }}
+                    className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-indigo-700 shadow-sm transition"
                 >
                     + Registrar Sala
                 </button>
             </div>
 
             {mostrarForm && (
-                <form onSubmit={handleGuardarSala} className="bg-white p-6 rounded-2xl shadow-lg mb-6 w-full max-w-4xl border border-gray-200">
-                    <h3 className="text-xl font-semibold mb-4 text-gray-700">
-                        {editandoId ? 'Editar Sala' : 'Registrar nueva Sala'}
+                <form onSubmit={handleGuardarSala} className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 mb-8 w-full max-w-5xl">
+                    <h3 className="text-xl font-bold mb-6 text-slate-800">
+                        {editandoId ? 'Editar Sala Temática' : 'Registrar nueva Sala Temática'}
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input
-                            required
-                            placeholder="Nombre de la sala"
-                            className="border p-2 rounded text-black w-full"
-                            value={formData.nombre}
-                            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                        />
-                        <input
-                            type="number"
-                            min="0"
-                            placeholder="Capacidad total"
-                            className="border p-2 rounded text-black w-full"
-                            value={formData.capacidad_total}
-                            onChange={(e) => setFormData({ ...formData, capacidad_total: e.target.value })}
-                        />
-                        <textarea
-                            placeholder="Descripción temática"
-                            className="border p-2 rounded text-black w-full md:col-span-2"
-                            rows="2"
-                            value={formData.descripcion}
-                            onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                        />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        {/* DATOS BÁSICOS */}
+                        <div className="flex flex-col gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Nombre de la Sala *</label>
+                                <input
+                                    required
+                                    placeholder="Ej. Sala VIP"
+                                    className="border border-slate-300 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    value={nombre}
+                                    onChange={(e) => setNombre(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Temática *</label>
+                                <input
+                                    required
+                                    placeholder="Ej. Rústica, Gamer, Romántica"
+                                    className="border border-slate-300 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    value={tematica}
+                                    onChange={(e) => setTematica(e.target.value)}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Capacidad Total *</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        required
+                                        className="border border-slate-300 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        value={capacidadTotal}
+                                        onChange={(e) => setCapacidadTotal(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Disponibilidad *</label>
+                                    <select 
+                                        className="border border-slate-300 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        value={disponibilidad}
+                                        onChange={(e) => setDisponibilidad(e.target.value)}
+                                    >
+                                        <option value="disponible">Disponible</option>
+                                        <option value="no_disponible">No disponible</option>
+                                        <option value="mantenimiento">En mantenimiento</option>
+                                        <option value="reservada">Reservada</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Descripción</label>
+                                <textarea
+                                    placeholder="Breve descripción de la experiencia..."
+                                    className="border border-slate-300 p-2.5 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    rows="3"
+                                    value={descripcion}
+                                    onChange={(e) => setDescripcion(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* IMÁGENES */}
+                        <div className="flex flex-col gap-4">
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">Imagen Principal (Requerida)</label>
+                                {previewPrincipal && !imagenPrincipal && (
+                                    <img src={getImageUrl(previewPrincipal)} onError={handleImageError} alt="Principal" className="h-32 w-full object-cover rounded-lg mb-3 shadow-sm" />
+                                )}
+                                <input
+                                    type="file"
+                                    accept="image/jpeg, image/png, image/webp"
+                                    className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                                    onChange={(e) => setImagenPrincipal(e.target.files[0])}
+                                />
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex-1">
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">Galería (Opcional, Múltiples)</label>
+                                
+                                {galeriaExistente.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mb-3">
+                                        {galeriaExistente.map(img => (
+                                            <div key={img.id} className="relative group">
+                                                <img src={getImageUrl(img.imagen)} onError={handleImageError} alt="Galeria" className="h-16 w-16 object-cover rounded shadow-sm" />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => eliminarImagenExistente(img.id)}
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow"
+                                                    title="Eliminar imagen"
+                                                >
+                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <input
+                                    type="file"
+                                    multiple
+                                    accept="image/jpeg, image/png, image/webp"
+                                    className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 cursor-pointer"
+                                    onChange={(e) => setGaleriaNuevas(e.target.files)}
+                                />
+                                {galeriaNuevas.length > 0 && <p className="text-xs text-indigo-600 mt-2 font-semibold">+{galeriaNuevas.length} imágenes nuevas listas para subir.</p>}
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex gap-3 mt-4">
-                        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700">
-                            Guardar
-                        </button>
-                        <button type="button" onClick={handleCancelarForm} className="bg-gray-300 px-4 py-2 rounded font-bold hover:bg-gray-400">
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <button type="button" onClick={resetForm} className="bg-white border border-slate-300 text-slate-700 px-5 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition">
                             Cancelar
+                        </button>
+                        <button type="submit" className="bg-green-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-green-700 shadow-sm transition">
+                            Guardar Sala
                         </button>
                     </div>
                 </form>
             )}
             
-            <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sala</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacidad</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {salas.map((sala) => (
-                            <tr key={sala.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="font-medium text-gray-900">{sala.nombre}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {sala.capacidad_total} pax
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                        sala.habilitada ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                    }`}>
-                                        {sala.habilitada ? 'Habilitada' : 'Deshabilitada'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                                    <button 
-                                        onClick={() => onVerMesas(sala.id)}
-                                        className="text-indigo-600 hover:text-indigo-900 font-bold"
-                                    >
-                                        Ver Mesas
-                                    </button>
-                                    <button 
-                                        onClick={() => handleEditarClick(sala)}
-                                        className="text-yellow-600 hover:text-yellow-900 font-bold"
-                                    >
-                                        Editar
-                                    </button>
-                                    <button 
-                                        onClick={() => handleCambiarEstado(sala.id, sala.habilitada)}
-                                        className={`${sala.habilitada ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'} font-bold`}
-                                    >
-                                        {sala.habilitada ? 'Desactivar' : 'Activar'}
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {salas.map((sala) => (
+                    <div key={sala.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col group hover:shadow-md transition">
+                        <div className="h-48 bg-slate-200 relative overflow-hidden">
+                            {sala.imagen_principal ? (
+                                <img src={getImageUrl(sala.imagen_principal)} onError={handleImageError} alt={sala.nombre} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold">Sin Imagen</div>
+                            )}
+                            <div className="absolute top-3 right-3">
+                                {getBadgeDisponibilidad(sala.disponibilidad)}
+                            </div>
+                        </div>
+                        <div className="p-5 flex flex-col flex-1">
+                            <h3 className="text-xl font-black text-slate-800 mb-1">{sala.nombre}</h3>
+                            <p className="text-indigo-600 font-bold text-sm mb-3 uppercase tracking-wider">{sala.tematica || 'Sin Temática'}</p>
+                            <p className="text-slate-600 text-sm mb-4 line-clamp-2 flex-1">{sala.descripcion || 'Sin descripción.'}</p>
+                            
+                            <div className="flex justify-between items-center mb-5 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <div className="text-center">
+                                    <p className="text-xs text-slate-500 font-bold uppercase">Capacidad</p>
+                                    <p className="font-black text-slate-800">{sala.capacidad_total} <span className="text-sm font-normal">pax</span></p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-xs text-slate-500 font-bold uppercase">Galería</p>
+                                    <p className="font-black text-slate-800">{sala.galeria?.length || 0} <span className="text-sm font-normal">fotos</span></p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <button 
+                                    onClick={() => onVerMesas(sala.id)}
+                                    className="bg-indigo-50 text-indigo-700 font-bold py-2 rounded-lg hover:bg-indigo-100 transition"
+                                >
+                                    Ver Mesas
+                                </button>
+                                <button 
+                                    onClick={() => handleEditarClick(sala)}
+                                    className="bg-yellow-50 text-yellow-700 font-bold py-2 rounded-lg hover:bg-yellow-100 transition"
+                                >
+                                    Editar Sala
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );
