@@ -237,6 +237,43 @@ export const obtenerEmpleado = async (empleadoId) => {
   }
 };
 
+export const actualizarEmpleado = async (empleadoId, empleadoData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/empleados/${empleadoId}/`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(empleadoData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al actualizar empleado');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en actualizarEmpleado:', error);
+    throw error;
+  }
+};
+
+export const eliminarEmpleado = async (empleadoId) => {
+  try {
+    const response = await fetch(`${API_URL}/api/empleados/${empleadoId}/`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al eliminar empleado');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en eliminarEmpleado:', error);
+    throw error;
+  }
+};
+
 // ======================== CLIENTES ========================
 
 export const obtenerClientes = async () => {
@@ -271,6 +308,43 @@ export const obtenerCliente = async (clienteId) => {
     return await response.json();
   } catch (error) {
     console.error('Error en obtenerCliente:', error);
+    throw error;
+  }
+};
+
+export const actualizarCliente = async (clienteId, clienteData) => {
+  try {
+    const response = await fetch(`${API_URL}/api/clientes/${clienteId}/`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(clienteData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al actualizar cliente');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en actualizarCliente:', error);
+    throw error;
+  }
+};
+
+export const eliminarCliente = async (clienteId) => {
+  try {
+    const response = await fetch(`${API_URL}/api/clientes/${clienteId}/`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al eliminar cliente');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en eliminarCliente:', error);
     throw error;
   }
 };
@@ -310,7 +384,10 @@ export const obtenerBitacora = async () => {
 
   if (!res.ok) throw new Error("Error al obtener bitácora");
 
-  return await res.json();
+  const json = await res.json();
+  return Array.isArray(json)
+    ? json
+    : json.bitacora ?? json.data ?? json.results ?? [];
 };
 
 export const nuevaPassword = async (correo, password) => {

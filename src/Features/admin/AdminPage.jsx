@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  obtenerUsuarios,
-  eliminarUsuario,
   obtenerEmpleados,
   obtenerClientes,
-  obtenerBitacora
+  obtenerBitacora,
+  actualizarEmpleado,
+  eliminarEmpleado,
+  actualizarCliente,
+  eliminarCliente
 } from "../../services/api";
+import { validarContrasena, obtenerRequisitos } from "../../utils/validation";
 
 import GestionSalas from "../../pages/Admin/GestionSalas";
 import GestionMesas from "../../pages/Admin/GestionMesas";
@@ -17,176 +20,365 @@ import "../../App.css";
 const AdminPage = () => {
   const navigate = useNavigate();
 
-  const [usuarios, setUsuarios] = useState([]);
   const [empleados, setEmpleados] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [bitacora, setBitacora] = useState([]);
   const [mostrarInventario, setMostrarInventario] = useState(false);
-  
+  const [soloImportantes, setSoloImportantes] = useState(false);
+  const [activeUserTab, setActiveUserTab] = useState('empleados');
+  const [busquedaUsuario, setBusquedaUsuario] = useState('');
+  const [filtroRol, setFiltroRol] = useState('todos');
+  const [mostrarFormEmpleado, setMostrarFormEmpleado] = useState(false);
+  const [empleadoEditando, setEmpleadoEditando] = useState(null);
+  const [clienteEditando, setClienteEditando] = useState(null);
+  const [mostrarContrasenaEmpleado, setMostrarContrasenaEmpleado] = useState(false);
+  const [empleadoForm, setEmpleadoForm] = useState({
+    nombre: '',
+    correo: '',
+    telefono: '',
+    cargo: 'mesero',
+    estado: 'activo',
+    contrasena: '',
+  });
+  const [clienteForm, setClienteForm] = useState({
+    nombre: '',
+    correo: '',
+    telefono: '',
+  });
 
-  console.log("CLIENTES:", clientes);
+  const accionesImportantes = new Set([
+    'login',
+    'logout',
+    'crear empleado',
+    'editar cliente',
+    'eliminar reserva',
+  ]);
 
-  const [vista, setVista] = useState("usuarios");
+  const [vista, setVista] = useState('usuarios');
   const [loading, setLoading] = useState(false);
   const [salaIdParaMesas, setSalaIdParaMesas] = useState(null);
 
   const cambiarStock = (index, cantidad) => {
-  const nuevo = [...inventario];
+    const nuevo = [...inventario];
 
-  nuevo[index].stock += cantidad;
+    nuevo[index].stock += cantidad;
 
-  if (nuevo[index].stock < 0) {
-    nuevo[index].stock = 0;
-  }
+    if (nuevo[index].stock < 0) {
+      nuevo[index].stock = 0;
+    }
 
-  setInventario(nuevo);
-};
+    setInventario(nuevo);
+  };
 
   const [inventario, setInventario] = useState([
-  { nombre: "Café", stock: 25 },
-  { nombre: "Leche", stock: 10 },
-  { nombre: "Pan", stock: 5 },
-  { nombre: "Azúcar", stock: 0 }
+    { nombre: 'Café', stock: 25 },
+    { nombre: 'Leche', stock: 10 },
+    { nombre: 'Pan', stock: 5 },
+    { nombre: 'Azúcar', stock: 0 },
+  ]);
 
-  
-]);
+  const formatearFecha = (fecha) => {
+    if (!fecha) return "";
+    const date = new Date(fecha);
+    if (Number.isNaN(date.getTime())) return fecha;
+    return date.toLocaleString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+  };
 
-  const [mostrarForm, setMostrarForm] = useState(false);
-  const [nuevoEmpleado, setNuevoEmpleado] = useState({
-  nombre: '',
-  correo: '',
-  contrasena: '',
-  cargo: 'mesero'
- });
+  const dedupBitacora = (entries = []) => {
+    if (!Array.isArray(entries)) return [];
+    const seen = new Set();
+    return entries.filter((item) => {
+      const usuario = item.usuario && typeof item.usuario === 'object'
+        ? item.usuario.nombre
+        : item.usuario;
+      const key = `${usuario || ''}|${item.accion || ''}|${item.detalle || ''}|${item.fecha || ''}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
+  const ordenarBitacora = (entries = []) => {
+    return [...entries].sort((a, b) => {
+      const fechaA = new Date(a.fecha).getTime();
+      const fechaB = new Date(b.fecha).getTime();
+      return fechaB - fechaA;
+    });
+  };
+
+  const normalizarAccion = (accion) => {
+    if (!accion) return "";
+    return accion.toString().toLowerCase().trim();
+  };
+
+  const esAccionImportante = (accion) => {
+    const texto = normalizarAccion(accion);
+    if (!texto) return false;
+    if (texto.includes('login')) return true;
+    if (texto.includes('logout')) return true;
+    if (texto.includes('crear') && texto.includes('empleado')) return true;
+    if (texto.includes('editar') && texto.includes('cliente')) return true;
+    if (texto.includes('eliminar') && texto.includes('reserva')) return true;
+    return accionesImportantes.has(texto);
+  };
+
+  const filtrarAccionesImportantes = (entries = []) => {
+    return entries.filter((item) => esAccionImportante(item.accion));
+  };
+
+  const dedupEventos = (entries = []) => {
+    const seen = new Set();
+    return entries.filter((item) => {
+      const usuario = item.usuario && typeof item.usuario === 'object'
+        ? item.usuario.nombre
+        : item.usuario;
+      const accion = normalizarAccion(item.accion);
+      const detalle = (item.detalle || '').toString().trim();
+      const key = `${usuario || ''}|${accion}|${detalle}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
 
   // 🔄 Cargar datos según vista
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      if (vista === "usuarios") {
-        const data = await obtenerUsuarios();
-        setUsuarios(data);
-      } else if (vista === "empleados") {
-        const data = await obtenerEmpleados();
-        setEmpleados(data);
-      } else if (vista === "clientes") {
-        const data = await obtenerClientes();
-        setClientes(data); 
-      } else if (vista === "bitacora") {
+      if (vista === 'usuarios') {
+        const [empleadosData, clientesData] = await Promise.all([
+          obtenerEmpleados(),
+          obtenerClientes(),
+        ]);
+
+        setEmpleados(Array.isArray(empleadosData) ? empleadosData : empleadosData.results ?? []);
+        setClientes(Array.isArray(clientesData) ? clientesData : clientesData.results ?? []);
+      } else if (vista === 'bitacora') {
         const data = await obtenerBitacora();
-        setBitacora(data);
+        const limpia = ordenarBitacora(dedupBitacora(data));
+        setBitacora(limpia);
       }
     } catch (error) {
       console.error(error);
-      alert("Error cargando datos");
+      alert('Error cargando datos');
     } finally {
       setLoading(false);
     }
   };
 
+  const effectRan = useRef(false);
+
   useEffect(() => {
+    if (effectRan.current === false && import.meta.env.DEV) {
+      effectRan.current = true;
+      return;
+    }
+
     cargarDatos();
     // eslint-disable-next-line
   }, [vista]);
 
-  // 🗑️ eliminar usuario
-  const handleEliminar = async (id) => {
-    if (!window.confirm("¿Eliminar usuario?")) return;
+  const resetEmpleadoForm = () => {
+    setEmpleadoForm({
+      nombre: '',
+      correo: '',
+      telefono: '',
+      cargo: 'mesero',
+      estado: 'activo',
+      contrasena: '',
+    });
+    setEmpleadoEditando(null);
+  };
+
+  const resetClienteForm = () => {
+    setClienteForm({
+      nombre: '',
+      correo: '',
+      telefono: '',
+    });
+    setClienteEditando(null);
+  };
+
+  const handleEliminarEmpleado = async (id) => {
+    if (!window.confirm('¿Eliminar empleado?')) return;
 
     try {
-      await eliminarUsuario(id);
+      await eliminarEmpleado(id);
       cargarDatos();
-    } catch {
-      alert("Error al eliminar");
+    } catch (error) {
+      console.error(error);
+      alert('Error al eliminar empleado');
     }
   };
 
-   // 🚪 logout
-   const handleLogout = async () => {
-  const token = localStorage.getItem("token");
+  const handleEliminarCliente = async (id) => {
+    if (!window.confirm('¿Eliminar cliente?')) return;
 
-  try {
-    await fetch("http://127.0.0.1:8000/api/logout/", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    try {
+      await eliminarCliente(id);
+      cargarDatos();
+    } catch (error) {
+      console.error(error);
+      alert('Error al eliminar cliente');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch('http://127.0.0.1:8000/api/logout/', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (error) {
+      console.error('Error logout:', error);
+    }
+
+    localStorage.clear();
+    navigate('/login');
+  };
+
+  const handleEditarEmpleado = (empleado) => {
+    setEmpleadoEditando(empleado);
+    setEmpleadoForm({
+      nombre: empleado.usuario?.nombre || empleado.nombre || '',
+      correo: empleado.usuario?.correo || empleado.correo || '',
+      telefono: empleado.usuario?.telefono || empleado.telefono || '',
+      cargo: empleado.cargo || 'mesero',
+      estado: empleado.estado || 'activo',
+      contrasena: '',
     });
-  } catch (error) {
-    console.error("Error logout:", error);
-  }
+    setMostrarFormEmpleado(true);
+    setClienteEditando(null);
+  };
 
-  localStorage.clear();
-  navigate("/login");
-};
+  const handleEditarCliente = (cliente) => {
+    setClienteEditando(cliente);
+    setClienteForm({
+      nombre: cliente.usuario?.nombre || cliente.nombre || '',
+      correo: cliente.usuario?.correo || cliente.correo || '',
+      telefono: cliente.usuario?.telefono || cliente.telefono || '',
+    });
+    setEmpleadoEditando(null);
+    setMostrarFormEmpleado(false);
+  };
 
-  const handleCrearEmpleado = async () => {
-  try {
-
-    // 🔴 VALIDACIÓN
-    if (!nuevoEmpleado.nombre || !nuevoEmpleado.correo || !nuevoEmpleado.contrasena) {
-      alert("Completa todos los campos");
+  const handleGuardarEmpleado = async () => {
+    const { nombre, correo, telefono, cargo, estado, contrasena } = empleadoForm;
+    if (!nombre || !correo) {
+      alert('Completa los campos requeridos');
       return;
     }
 
-    const password = nuevoEmpleado.contrasena;
+    try {
+      const payload = {
+        nombre,
+        correo,
+        cargo,
+      };
+      if (empleadoEditando) {
+        payload.telefono = telefono;
+        payload.estado = estado;
+      } else {
+        payload.estado = 'activo';
+      }
 
-    if (password.length < 6) {
-      alert("La contraseña debe tener al menos 6 caracteres");
+      if (empleadoEditando) {
+        await actualizarEmpleado(empleadoEditando.cod_empleado || empleadoEditando.id, payload);
+        alert('Empleado actualizado correctamente');
+      } else {
+        if (!contrasena) {
+          alert('La contraseña es obligatoria');
+          return;
+        }
+
+        const validacion = validarContrasena(contrasena);
+        if (!validacion.valido) {
+          alert('La contraseña debe cumplir los requisitos de seguridad: 8+ caracteres, mayúscula, minúscula, número y carácter especial.');
+          return;
+        }
+
+        payload.contrasena = contrasena;
+        await fetch('http://127.0.0.1:8000/api/empleados/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        alert('Empleado creado correctamente');
+      }
+
+      resetEmpleadoForm();
+      setMostrarFormEmpleado(false);
+      cargarDatos();
+    } catch (error) {
+      console.error(error);
+      alert('Error guardando empleado');
+    }
+  };
+
+  const handleGuardarCliente = async () => {
+    if (!clienteEditando) return;
+    const { nombre, correo, telefono } = clienteForm;
+    if (!nombre || !correo || !telefono) {
+      alert('Completa los campos requeridos');
       return;
     }
 
-    if (!/[A-Z]/.test(password)) {
-      alert("Debe tener una letra MAYÚSCULA");
-      return;
+    try {
+      await actualizarCliente(clienteEditando.cod_cliente || clienteEditando.id, {
+        nombre,
+        correo,
+        telefono,
+      });
+      alert('Cliente actualizado correctamente');
+      resetClienteForm();
+      cargarDatos();
+    } catch (error) {
+      console.error(error);
+      alert('Error guardando cliente');
     }
+  };
 
-    if (!/[a-z]/.test(password)) {
-      alert("Debe tener una letra minúscula");
-      return;
-    }
+  const getNombreUsuario = (item) => item.usuario?.nombre || item.nombre || '';
+  const getCorreoUsuario = (item) => item.usuario?.correo || item.correo || '';
+  const getTelefonoUsuario = (item) => item.usuario?.telefono || item.telefono || '';
+  const requisitosEmpleado = obtenerRequisitos(empleadoForm.contrasena);
 
-    if (!/[0-9]/.test(password)) {
-      alert("Debe tener un número");
-      return;
-    }
+  const empleadosFiltrados = empleados.filter((empleado) => {
+    const nombre = getNombreUsuario(empleado).toLowerCase();
+    const correo = getCorreoUsuario(empleado).toLowerCase();
+    const rol = String(empleado.cargo || '').toLowerCase();
+    const busqueda = busquedaUsuario.toLowerCase();
+    const matchesSearch = nombre.includes(busqueda) || correo.includes(busqueda);
+    const matchesRol = filtroRol === 'todos' || rol === filtroRol;
+    return matchesSearch && matchesRol;
+  });
 
-    if (!/[!@#$%^&*]/.test(password)) {
-      alert("Debe tener un carácter especial");
-      return;
-    }
+  const clientesFiltrados = clientes.filter((cliente) => {
+    const nombre = getNombreUsuario(cliente).toLowerCase();
+    const correo = getCorreoUsuario(cliente).toLowerCase();
+    const busqueda = busquedaUsuario.toLowerCase();
+    return nombre.includes(busqueda) || correo.includes(busqueda);
+  });
 
-    // 🔵 FETCH
-    const token = localStorage.getItem("token");
-
-   const res = await fetch('http://127.0.0.1:8000/api/empleados/', {
-   method: 'POST',
-   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`   // 🔥 ESTA LÍNEA ES LA CLAVE
- },
-   body: JSON.stringify(nuevoEmpleado)
-});
-
-    const data = await res.json();
-
-    console.log("RESPUESTA BACKEND:", data);
-
-    if (!res.ok) {
-      alert(data.error || "Error al crear empleado");
-      return;
-    }
-
-    alert("Empleado creado ✔");
-
-    setMostrarForm(false);
-    cargarDatos();
-
-  } catch (error) {
-    console.error(error);
-    alert("Error de conexión");
-  }
-};
+  let bitacoraMostrar = soloImportantes
+    ? filtrarAccionesImportantes(bitacora)
+    : bitacora;
+  bitacoraMostrar = dedupEventos(bitacoraMostrar);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 relative">
@@ -208,195 +400,409 @@ const AdminPage = () => {
         {loading && <p className="text-slate-500">Cargando...</p>}
 
         {/* 👤 USUARIOS */}
-        {vista === "usuarios" && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-slate-100 text-slate-700">
-                <tr>
-                  <th className="p-3">ID</th>
-                  <th className="p-3">Nombre</th>
-                  <th className="p-3">Correo</th>
-                  <th className="p-3">Rol</th>
-                  <th className="p-3">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usuarios.map((u) => (
-                  <tr
-                    key={u.id_usuario}
-                    className="text-center border-t hover:bg-slate-50"
+        {vista === 'usuarios' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl shadow-sm p-4 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
+              <div className="flex gap-2 rounded-full bg-slate-100 p-2">
+                {['empleados', 'clientes'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => {
+                      setActiveUserTab(tab);
+                      setBusquedaUsuario('');
+                      if (tab === 'empleados') setFiltroRol('todos');
+                      setClienteEditando(null);
+                      resetEmpleadoForm();
+                    }}
+                    className={`px-4 py-2 rounded-full text-sm font-semibold transition ${activeUserTab === tab ? 'bg-amber-500 text-white' : 'text-slate-600 hover:bg-amber-100'}`}
                   >
-                    <td className="p-2">{u.id_usuario}</td>
-                    <td className="p-2">{u.nombre}</td>
-                    <td className="p-2">{u.correo}</td>
-                    <td className="p-2">{u.cod_rol}</td>
-                    <td className="p-2">
-                      <button
-                        onClick={() => handleEliminar(u.id_usuario)}
-                        className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
+                    {tab === 'empleados' ? 'Empleados' : 'Clientes'}
+                  </button>
                 ))}
-              </tbody>
-            </table>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <input
+                  value={busquedaUsuario}
+                  onChange={(e) => setBusquedaUsuario(e.target.value)}
+                  placeholder="Buscar por nombre o correo"
+                  className="w-full sm:w-[320px] border border-slate-200 rounded-full px-4 py-2 text-sm shadow-sm"
+                />
+                {activeUserTab === 'empleados' && (
+                  <select
+                    value={filtroRol}
+                    onChange={(e) => setFiltroRol(e.target.value)}
+                    className="border border-slate-200 rounded-full px-4 py-2 text-sm shadow-sm"
+                  >
+                    <option value="todos">Todos los roles</option>
+                    <option value="mesero">Mesero</option>
+                    <option value="cocinero">Cocinero</option>
+                  </select>
+                )}
+              </div>
+            </div>
+
+            {activeUserTab === 'empleados' && (
+              <div className="bg-white rounded-3xl shadow-sm p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <p className="text-lg font-semibold text-slate-900">Empleados</p>
+                    <p className="text-sm text-slate-500">Meseros y cocineros del sistema.</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMostrarFormEmpleado((prev) => !prev);
+                      resetEmpleadoForm();
+                      setEmpleadoEditando(null);
+                    }}
+                    className="rounded-full bg-amber-500 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-600 transition"
+                  >
+                    Nuevo empleado
+                  </button>
+                </div>
+
+                {mostrarFormEmpleado && (
+                  <div className="border border-slate-200 rounded-3xl bg-slate-50 p-6">
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                      <div>
+                        <h2 className="text-xl font-semibold text-slate-900">{empleadoEditando ? 'Editar empleado' : 'Crear empleado'}</h2>
+                        <p className="text-sm text-slate-500">Rellena los datos y guarda la cuenta del empleado.</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setMostrarFormEmpleado(false);
+                          resetEmpleadoForm();
+                        }}
+                        className="text-slate-500 hover:text-slate-900"
+                      >
+                        Cerrar
+                      </button>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <input
+                        value={empleadoForm.nombre}
+                        onChange={(e) => setEmpleadoForm({ ...empleadoForm, nombre: e.target.value })}
+                        placeholder="Nombre completo"
+                        className="border border-slate-200 rounded-2xl px-4 py-3"
+                      />
+                      <input
+                        value={empleadoForm.correo}
+                        onChange={(e) => setEmpleadoForm({ ...empleadoForm, correo: e.target.value })}
+                        placeholder="Correo electrónico"
+                        className="border border-slate-200 rounded-2xl px-4 py-3"
+                      />
+                      <select
+                        value={empleadoForm.cargo}
+                        onChange={(e) => setEmpleadoForm({ ...empleadoForm, cargo: e.target.value })}
+                        className="border border-slate-200 rounded-2xl px-4 py-3"
+                      >
+                        <option value="mesero">Mesero</option>
+                        <option value="cocinero">Cocinero</option>
+                      </select>
+                      {!empleadoEditando && (
+                        <div className="relative">
+                          <input
+                            type={mostrarContrasenaEmpleado ? "text" : "password"}
+                            value={empleadoForm.contrasena}
+                            onChange={(e) => setEmpleadoForm({ ...empleadoForm, contrasena: e.target.value })}
+                            placeholder="Contraseña"
+                            className="w-full border border-slate-200 rounded-2xl px-4 py-3 pr-12"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setMostrarContrasenaEmpleado((prev) => !prev)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                            aria-label={mostrarContrasenaEmpleado ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                          >
+                            {mostrarContrasenaEmpleado ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M1 1l22 22" />
+                                <path d="M17.94 17.94A10.93 10.93 0 0 1 12 19.5c-5 0-9.27-3.11-11-7.5a10.94 10.94 0 0 1 4.46-5.71" />
+                                <path d="M10.58 10.58a2 2 0 1 0 2.84 2.84" />
+                                <path d="M14.12 14.12L19.36 19.36" />
+                              </svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {empleadoForm.contrasena && !empleadoEditando && (
+                      <div className="mt-4 p-4 rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-700">
+                        <p className="font-semibold mb-2">Requisitos de contraseña:</p>
+                        <ul className="space-y-1">
+                          <li className={requisitosEmpleado.longitud ? 'text-emerald-600' : 'text-red-600'}>
+                            {requisitosEmpleado.longitud ? '✓' : '✗'} Mínimo 8 caracteres
+                          </li>
+                          <li className={requisitosEmpleado.mayuscula ? 'text-emerald-600' : 'text-red-600'}>
+                            {requisitosEmpleado.mayuscula ? '✓' : '✗'} Una letra mayúscula
+                          </li>
+                          <li className={requisitosEmpleado.minuscula ? 'text-emerald-600' : 'text-red-600'}>
+                            {requisitosEmpleado.minuscula ? '✓' : '✗'} Una letra minúscula
+                          </li>
+                          <li className={requisitosEmpleado.numero ? 'text-emerald-600' : 'text-red-600'}>
+                            {requisitosEmpleado.numero ? '✓' : '✗'} Un número
+                          </li>
+                          <li className={requisitosEmpleado.especial ? 'text-emerald-600' : 'text-red-600'}>
+                            {requisitosEmpleado.especial ? '✓' : '✗'} Un carácter especial
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="mt-6 flex flex-wrap gap-3">
+                      <button
+                        onClick={handleGuardarEmpleado}
+                        className="rounded-full bg-amber-500 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-600 transition"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        onClick={() => {
+                          resetEmpleadoForm();
+                          setMostrarFormEmpleado(false);
+                        }}
+                        className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="overflow-x-auto rounded-3xl bg-white shadow-sm border border-slate-200">
+                  <table className="min-w-full text-left">
+                    <thead className="bg-slate-100 text-slate-700">
+                      <tr>
+                        <th className="px-6 py-4 text-sm font-semibold">Nombre completo</th>
+                        <th className="px-6 py-4 text-sm font-semibold">Correo electrónico</th>
+                        <th className="px-6 py-4 text-sm font-semibold">Rol</th>
+                        <th className="px-6 py-4 text-sm font-semibold">Estado</th>
+                        <th className="px-6 py-4 text-sm font-semibold">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {empleadosFiltrados.length === 0 ? (
+                        <tr>
+                          <td className="px-6 py-5 border-t text-center text-slate-500" colSpan={5}>
+                            No hay empleados para mostrar.
+                          </td>
+                        </tr>
+                      ) : (
+                        empleadosFiltrados.map((empleado) => {
+                          const nombre = getNombreUsuario(empleado);
+                          const correo = getCorreoUsuario(empleado);
+                          const rol = empleado.cargo || 'mesero';
+                          const estado = empleado.estado || 'activo';
+
+                          return (
+                            <tr key={empleado.cod_empleado || empleado.id} className="border-t hover:bg-slate-50">
+                              <td className="px-6 py-4">{nombre}</td>
+                              <td className="px-6 py-4">{correo}</td>
+                              <td className="px-6 py-4">
+                                <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">
+                                  {rol.charAt(0).toUpperCase() + rol.slice(1)}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${estado === 'activo' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+                                  {estado === 'activo' ? 'Activo' : 'Inactivo'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 space-x-2">
+                                <button
+                                  onClick={() => handleEditarEmpleado(empleado)}
+                                  className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  onClick={() => handleEliminarEmpleado(empleado.cod_empleado || empleado.id)}
+                                  className="rounded-full bg-red-500 px-3 py-2 text-sm font-semibold text-white hover:bg-red-600 transition"
+                                >
+                                  Eliminar
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeUserTab === 'clientes' && (
+              <div className="bg-white rounded-3xl shadow-sm p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <p className="text-lg font-semibold text-slate-900">Clientes</p>
+                    <p className="text-sm text-slate-500">Los clientes se registran desde la interfaz pública.</p>
+                  </div>
+                  <p className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">Sin creación desde aquí</p>
+                </div>
+
+                <div className="overflow-x-auto rounded-3xl bg-white shadow-sm border border-slate-200">
+                  <table className="min-w-full text-left">
+                    <thead className="bg-slate-100 text-slate-700">
+                      <tr>
+                        <th className="px-6 py-4 text-sm font-semibold">Nombre completo</th>
+                        <th className="px-6 py-4 text-sm font-semibold">Correo electrónico</th>
+                        <th className="px-6 py-4 text-sm font-semibold">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clientesFiltrados.length === 0 ? (
+                        <tr>
+                          <td className="px-6 py-5 border-t text-center text-slate-500" colSpan={3}>
+                            No hay clientes para mostrar.
+                          </td>
+                        </tr>
+                      ) : (
+                        clientesFiltrados.map((cliente) => (
+                          <tr key={cliente.cod_cliente || cliente.id} className="border-t hover:bg-slate-50">
+                            <td className="px-6 py-4">{getNombreUsuario(cliente)}</td>
+                            <td className="px-6 py-4">{getCorreoUsuario(cliente)}</td>
+                            <td className="px-6 py-4 space-x-2">
+                              <button
+                                onClick={() => handleEditarCliente(cliente)}
+                                className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => handleEliminarCliente(cliente.cod_cliente || cliente.id)}
+                                className="rounded-full bg-red-500 px-3 py-2 text-sm font-semibold text-white hover:bg-red-600 transition"
+                              >
+                                Eliminar
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {clienteEditando && (
+                  <div className="border border-slate-200 rounded-3xl bg-slate-50 p-6">
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                      <div>
+                        <h2 className="text-xl font-semibold text-slate-900">Editar cliente</h2>
+                        <p className="text-sm text-slate-500">Corrige datos públicos del cliente.</p>
+                      </div>
+                      <button
+                        onClick={resetClienteForm}
+                        className="text-slate-500 hover:text-slate-900"
+                      >
+                        Cerrar
+                      </button>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <input
+                        value={clienteForm.nombre}
+                        onChange={(e) => setClienteForm({ ...clienteForm, nombre: e.target.value })}
+                        placeholder="Nombre completo"
+                        className="border border-slate-200 rounded-2xl px-4 py-3"
+                      />
+                      <input
+                        value={clienteForm.correo}
+                        onChange={(e) => setClienteForm({ ...clienteForm, correo: e.target.value })}
+                        placeholder="Correo electrónico"
+                        className="border border-slate-200 rounded-2xl px-4 py-3"
+                      />
+                      <input
+                        value={clienteForm.telefono}
+                        onChange={(e) => setClienteForm({ ...clienteForm, telefono: e.target.value })}
+                        placeholder="Teléfono"
+                        className="border border-slate-200 rounded-2xl px-4 py-3"
+                      />
+                    </div>
+
+                    <div className="mt-6 flex flex-wrap gap-3">
+                      <button
+                        onClick={handleGuardarCliente}
+                        className="rounded-full bg-amber-500 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-600 transition"
+                      >
+                        Guardar cambios
+                      </button>
+                      <button
+                        onClick={resetClienteForm}
+                        className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
          
         
-       {/* 👨‍🍳 EMPLEADOS */}
-{vista === "empleados" && (
-  <>
-    {/* BOTÓN */}
-    <button
-      onClick={() => setMostrarForm(!mostrarForm)}
-      className="mb-4 bg-orange-500 text-white px-4 py-2 rounded-lg"
-    >
-      Registrar empleado
-    </button>
-
-    {/* FORMULARIO */}
-    {mostrarForm && (
-      <div className="bg-white p-6 rounded-2xl shadow-lg mb-6 w-full max-w-4xl">
-
-        <h3 className="text-xl font-semibold mb-4 text-gray-700">
-          Registrar empleado
-        </h3>
-
-        <div className="grid grid-cols-2 gap-4">
-
-          <input
-            placeholder="Nombre"
-            className="border p-2 rounded text-black"
-            value={nuevoEmpleado.nombre}
-            onChange={(e)=>setNuevoEmpleado({...nuevoEmpleado, nombre:e.target.value})}
-          />
-
-          <input
-            placeholder="Correo"
-            className="border p-2 rounded text-black"
-            value={nuevoEmpleado.correo}
-            onChange={(e)=>setNuevoEmpleado({...nuevoEmpleado, correo:e.target.value})}
-          />
-
-          <input
-            type="password"
-            placeholder="Contraseña"
-            className="border p-2 rounded text-black"
-            value={nuevoEmpleado.contrasena}
-            onChange={(e)=>setNuevoEmpleado({...nuevoEmpleado, contrasena:e.target.value})}
-          />
-
-          <select
-            className="border p-2 rounded text-black"
-            value={nuevoEmpleado.cargo}
-            onChange={(e)=>setNuevoEmpleado({...nuevoEmpleado, cargo:e.target.value})}
-          >
-            <option value="mesero">Mesero</option>
-            <option value="cocinero">Cocinero</option>
-          </select>
-
-        </div>
-
-        <div className="flex gap-3 mt-4">
-          <button
-            onClick={handleCrearEmpleado}
-            className="bg-green-600 text-white px-4 py-2 rounded"
-          >
-            Guardar
-          </button>
-
-          <button
-            onClick={() => setMostrarForm(false)}
-            className="bg-gray-300 px-4 py-2 rounded"
-          >
-            Cancelar
-          </button>
-        </div>
-
+ {/* 📜 BITÁCORA */}
+{vista === "bitacora" && (
+  <div className="rounded-[2rem] bg-slate-50 p-6 shadow-lg ring-1 ring-slate-200">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-200">
+      <div>
+        <p className="text-lg font-semibold text-slate-900">Bitácora</p>
+        <p className="text-sm text-slate-500">Solo acciones importantes</p>
       </div>
-    )}
-
-    {/* TABLA */}
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-      <table className="w-full">
-        <thead className="bg-slate-100 text-slate-700">
+      <button
+        onClick={() => setSoloImportantes((prev) => !prev)}
+        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${soloImportantes ? 'bg-slate-900 text-white' : 'bg-amber-100 text-amber-900 hover:bg-amber-200'}`}
+      >
+        {soloImportantes ? 'Mostrar todo' : 'Mostrar solo importantes'}
+      </button>
+    </div>
+    <div className="overflow-x-auto rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200 mt-6">
+      <table className="min-w-full border-separate border-spacing-0">
+        <thead className="bg-amber-100 text-slate-700">
           <tr>
-            <th className="p-3">Código</th>
-            <th className="p-3">Nombre</th>
-            <th className="p-3">Cargo</th>
-            <th className="p-3">Turno</th>
+            <th className="p-4 text-left text-sm font-semibold">Usuario</th>
+            <th className="p-4 text-left text-sm font-semibold">Acción</th>
+            <th className="p-4 text-left text-sm font-semibold">Detalle</th>
+            <th className="p-4 text-left text-sm font-semibold">Fecha</th>
           </tr>
         </thead>
-
         <tbody>
-          {empleados.map((e) => (
-            <tr key={e.cod_empleado} className="text-center border-t">
-              <td className="p-2">{e.cod_empleado}</td>
-              <td className="p-2">{e.usuario?.nombre}</td>
-              <td className="p-2">{e.cargo}</td>
-              <td className="p-2">{e.turno}</td>
+          {bitacoraMostrar.length === 0 ? (
+            <tr className="text-center border-t">
+              <td className="p-6" colSpan="4">
+                No hay registros en la bitácora.
+              </td>
             </tr>
-          ))}
+          ) : (
+            bitacoraMostrar.map((b, index) => {
+              const usuario = b.usuario && typeof b.usuario === 'object'
+                ? b.usuario.nombre
+                : b.usuario;
+              const fecha = formatearFecha(b.fecha);
+
+              return (
+                <tr
+                  key={b.id ?? index}
+                  className="text-left border-t hover:bg-slate-50"
+                >
+                  <td className="p-4 border-b border-slate-200">{usuario}</td>
+                  <td className="p-4 border-b border-slate-200">{b.accion}</td>
+                  <td className="p-4 border-b border-slate-200">{b.detalle}</td>
+                  <td className="p-4 border-b border-slate-200">{fecha}</td>
+                </tr>
+              );
+            })
+          )}
         </tbody>
       </table>
     </div>
-  </>
-)}
-
-{/* 🧑 CLIENTES */}
-{vista === "clientes" && (
-  <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-    <table className="w-full">
-      <thead className="bg-slate-100 text-slate-700">
-        <tr>
-          <th className="p-3">Código</th>
-          <th className="p-3">Nombre</th>
-          <th className="p-3">Teléfono</th>
-          <th className="p-3">Dirección</th>
-        </tr>
-      </thead>
-      <tbody>
-        {clientes.map((c) => (
-          <tr
-            key={c.cod_cliente}
-            className="text-center border-t hover:bg-slate-50"
-          >
-               <td>{c.usuario?.nombre}</td>
-               <td>{c.usuario?.correo}</td>
-               <td>{c.telefono}</td>
-               <td>{c.direccion}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
- {/* 📜 BITÁCORA */}
-{vista === "bitacora" && (
-  <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-    <table className="w-full">
-      <thead className="bg-slate-100 text-slate-700">
-        <tr>
-          <th className="p-3">Usuario</th>
-          <th className="p-3">Acción</th>
-          <th className="p-3">Detalle</th>
-          <th className="p-3">Fecha</th>
-        </tr>
-      </thead>
-      <tbody>
-        {bitacora.map((b) => (
-          <tr key={`${b.usuario}-${b.fecha}`} className="text-center border-t">
-            <td className="p-2">{b.usuario}</td>
-            <td className="p-2">{b.accion}</td>
-            <td className="p-2">{b.detalle}</td>
-            <td className="p-2">{b.fecha}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   </div>
 )}
 {mostrarInventario && (

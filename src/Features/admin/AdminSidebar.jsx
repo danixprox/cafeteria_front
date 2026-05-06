@@ -24,8 +24,6 @@ const AdminSidebar = ({ vista, setVista, mostrarInventario, setMostrarInventario
 
     const menuItems = [
         { id: 'usuarios', label: 'Usuarios', icon: '👤' },
-        { id: 'clientes', label: 'Clientes', icon: '🧑' },
-        { id: 'empleados', label: 'Empleados', icon: '👨‍🍳' },
         { id: 'bitacora', label: 'Bitácora', icon: '📜' },
         { id: 'salas', label: 'Gestión de Salas', icon: '🚪' }
     ];

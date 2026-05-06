@@ -4,46 +4,37 @@ import { obtenerEmpleados, obtenerClientes } from '../../services/api';
 
 const EmployeePage = () => {
   const navigate = useNavigate();
-
   const [empleados, setEmpleados] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [clientesOriginal, setClientesOriginal] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // 🔥 mejor forma (evita warnings)
   const [usuario] = useState(() => {
-    const u = localStorage.getItem("usuario");
+    const u = localStorage.getItem('usuario');
     return u ? JSON.parse(u) : null;
   });
 
-  // 🔥 LOGOUT CON BITÁCORA
   const handleLogout = async () => {
-    const token = localStorage.getItem("token");
-
+    const token = localStorage.getItem('token');
     try {
-      await fetch("http://127.0.0.1:8000/api/logout/", {
-        method: "POST",
+      await fetch('http://127.0.0.1:8000/api/logout/', {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
     } catch (error) {
-      console.error("Error logout:", error);
+      console.error('Error logout:', error);
     }
-
     localStorage.clear();
-    navigate("/login");
+    navigate('/login');
   };
 
   useEffect(() => {
     const cargar = async () => {
       try {
-        const [emp, cli] = await Promise.all([
-          obtenerEmpleados(),
-          obtenerClientes()
-        ]);
-
+        const [emp, cli] = await Promise.all([obtenerEmpleados(), obtenerClientes()]);
         setEmpleados(emp || []);
         setClientes(cli || []);
         setClientesOriginal(cli || []);
@@ -53,157 +44,146 @@ const EmployeePage = () => {
         setLoading(false);
       }
     };
-
     cargar();
   }, []);
 
   const buscarCliente = (texto) => {
     const t = texto.toLowerCase();
-
     if (!t) {
       setClientes(clientesOriginal);
       return;
     }
-
-    const filtrados = clientesOriginal.filter(c =>
+    const filtrados = clientesOriginal.filter((c) =>
       c.usuario?.nombre.toLowerCase().includes(t)
     );
-
     setClientes(filtrados);
   };
 
   if (loading) return <div className="p-6">Cargando...</div>;
-  if (error) return <div className="p-6 text-red-500">❌ {error}</div>;
+  if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-
-      {/* HEADER */}
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">
-              Panel de Empleado
-            </h1>
-            <p className="text-sm text-slate-600">
-              {usuario?.nombre} ({usuario?.cod_rol?.cod_rol || usuario?.rol})
-            </p>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-amber-50 via-slate-50 to-slate-200 px-4 py-10">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <header className="rounded-[2rem] bg-white p-8 shadow-2xl ring-1 ring-slate-200">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.35em] text-amber-700">Empleado</p>
+              <h1 className="mt-2 text-4xl font-black text-slate-900">Panel de Empleado</h1>
+              <p className="mt-2 text-slate-600">
+                {usuario?.nombre} — {usuario?.cod_rol?.cod_rol || usuario?.rol}
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                onClick={() => window.location.reload()}
+                className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Actualizar
+              </button>
+              <button
+                onClick={handleLogout}
+                className="rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+              >
+                Cerrar sesión
+              </button>
+            </div>
           </div>
+        </header>
 
-          <button
-            onClick={handleLogout}
-            className="bg-slate-900 text-white px-4 py-2 rounded"
-          >
-            Cerrar sesión
-          </button>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">
-
-        {/* BOTÓN ACTUALIZAR */}
-        <button
-          onClick={() => window.location.reload()}
-          className="bg-blue-600 text-white px-3 py-1 rounded"
-        >
-          Actualizar
-        </button>
-
-        {/* EMPLEADOS */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4 text-slate-900">
-            👨‍🍳 Empleados
-          </h2>
-
-          <div className="bg-white rounded shadow divide-y">
-            {empleados.length === 0 ? (
-              <p className="p-4 text-slate-500">No hay empleados</p>
-            ) : (
-              empleados.map(e => (
-                <div key={e.cod_empleado} className="p-4">
-                  <p className="font-semibold">{e.usuario?.nombre}</p>
-                  <p className="text-sm">Cargo: {e.cargo}</p>
-                  <p className="text-sm">Turno: {e.turno}</p>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* CLIENTES */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4 text-slate-900">
-            🧍 Clientes
-          </h2>
-
-          <input
-            placeholder="Buscar cliente..."
-            className="border p-2 rounded mb-4 w-full"
-            onChange={(e) => buscarCliente(e.target.value)}
-          />
-
-          <div className="bg-white rounded shadow divide-y">
-            {clientes.length === 0 ? (
-              <p className="p-4 text-slate-500">No hay clientes</p>
-            ) : (
-              clientes.map(c => (
-                <div key={c.cod_cliente} className="p-4">
-                  <p className="font-semibold">{c.usuario?.nombre}</p>
-                  <p className="text-sm">Tel: {c.telefono}</p>
-                  <p className="text-sm">Dirección: {c.direccion}</p>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* 🔥 INVENTARIO SIMULADO */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4 text-slate-900">
-            📦 Inventario
-          </h2>
-
-          <div className="bg-white rounded shadow divide-y">
-            {[
-              { nombre: "Café", stock: 25 },
-              { nombre: "Leche", stock: 10 },
-              { nombre: "Pan", stock: 5 },
-              { nombre: "Azúcar", stock: 0 }
-            ].map((item, index) => {
-
-              let estado = "Disponible";
-              let color = "text-green-600";
-
-              if (item.stock <= 5 && item.stock > 0) {
-                estado = "Bajo";
-                color = "text-yellow-600";
-              }
-
-              if (item.stock === 0) {
-                estado = "Agotado";
-                color = "text-red-600";
-              }
-
-              return (
-                <div key={index} className="p-4 flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold">{item.nombre}</p>
-                    <p className="text-sm text-slate-600">
-                      Stock: {item.stock}
-                    </p>
+        <main className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
+          <section className="rounded-[2rem] bg-white p-8 shadow-lg ring-1 ring-slate-200">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm uppercase tracking-[0.35em] text-amber-700">Empleados</p>
+                <h2 className="mt-3 text-2xl font-semibold text-slate-900">Equipo activo</h2>
+              </div>
+              <span className="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-800">
+                {empleados.length} registros
+              </span>
+            </div>
+            <div className="mt-6 grid gap-4">
+              {empleados.length === 0 ? (
+                <p className="text-slate-500">No hay empleados</p>
+              ) : (
+                empleados.map((e) => (
+                  <div key={e.cod_empleado} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-lg font-semibold text-slate-900">{e.usuario?.nombre}</p>
+                    <p className="mt-2 text-sm text-slate-600">Cargo: {e.cargo}</p>
+                    <p className="text-sm text-slate-600">Turno: {e.turno}</p>
                   </div>
+                ))
+              )}
+            </div>
+          </section>
 
-                  <span className={`text-sm font-semibold ${color}`}>
-                    {estado}
-                  </span>
+          <section className="rounded-[2rem] bg-white p-8 shadow-lg ring-1 ring-slate-200">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm uppercase tracking-[0.35em] text-amber-700">Clientes</p>
+                <h2 className="mt-3 text-2xl font-semibold text-slate-900">Búsqueda rápida</h2>
+              </div>
+              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">
+                {clientes.length} encontrados
+              </span>
+            </div>
+            <input
+              placeholder="Buscar cliente..."
+              className="mt-6 w-full rounded-[1.5rem] border border-slate-300 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+              onChange={(e) => buscarCliente(e.target.value)}
+            />
+            <div className="mt-6 grid gap-4">
+              {clientes.length === 0 ? (
+                <p className="text-slate-500">No hay clientes</p>
+              ) : (
+                clientes.map((c) => (
+                  <div key={c.cod_cliente} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-lg font-semibold text-slate-900">{c.usuario?.nombre}</p>
+                    <p className="mt-2 text-sm text-slate-600">Teléfono: {c.telefono}</p>
+                    <p className="text-sm text-slate-600">Dirección: {c.direccion}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        </main>
+
+        <section className="rounded-[2rem] bg-white p-8 shadow-lg ring-1 ring-slate-200">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.35em] text-amber-700">Inventario</p>
+              <h2 className="mt-3 text-2xl font-semibold text-slate-900">Control rápido</h2>
+            </div>
+            <p className="text-sm text-slate-500">Observa el stock de productos clave.</p>
+          </div>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { nombre: 'Café', stock: 25 },
+              { nombre: 'Leche', stock: 10 },
+              { nombre: 'Pan', stock: 5 },
+              { nombre: 'Azúcar', stock: 0 },
+            ].map((item, index) => {
+              let estado = 'Disponible';
+              let color = 'text-emerald-600';
+              if (item.stock <= 5 && item.stock > 0) {
+                estado = 'Bajo';
+                color = 'text-amber-600';
+              }
+              if (item.stock === 0) {
+                estado = 'Agotado';
+                color = 'text-red-600';
+              }
+              return (
+                <div key={index} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <p className="font-semibold text-slate-900">{item.nombre}</p>
+                  <p className="mt-2 text-sm text-slate-600">Stock: {item.stock}</p>
+                  <p className={`mt-3 text-sm font-semibold ${color}`}>{estado}</p>
                 </div>
               );
             })}
           </div>
         </section>
-
-      </main>
+      </div>
     </div>
   );
 };
