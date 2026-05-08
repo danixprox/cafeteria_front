@@ -18,7 +18,30 @@ const DetalleSala = () => {
     
     const [loading, setLoading] = useState(true);
     const [loadingDisponibilidad, setLoadingDisponibilidad] = useState(false);
+    const [loadingReserva, setLoadingReserva] = useState(false);
     const [error, setError] = useState('');
+
+
+const generarFechas = () => {
+        const fechas = [];
+        const hoy = new Date();
+
+        for (let i = 0; i < 7; i++) {
+            const fecha = new Date();
+            fecha.setDate(hoy.getDate() + i);
+
+            fechas.push({
+                fechaISO: fecha.toISOString().split('T')[0],
+                dia: fecha.toLocaleDateString('es-ES', { weekday: 'short' }),
+                numero: fecha.getDate(),
+                mes: fecha.toLocaleDateString('es-ES', { month: 'short' })
+            });
+        }
+    return fechas;
+};
+
+
+
 
     useEffect(() => {
         Promise.all([
@@ -58,10 +81,23 @@ const DetalleSala = () => {
         }
 
         const mesaObjeto = mesas.find(m => m.id === mesaSeleccionada);
+        if (!mesaObjeto) {
+            setError('La mesa seleccionada no existe.');
+            return;
+        }
+
         if (cantidadPersonas > mesaObjeto.capacidad) {
             setError(`La cantidad de personas excede la capacidad de la mesa (${mesaObjeto.capacidad}).`);
             return;
         }
+
+        if (cantidadPersonas < 1) {
+            setError('Debe haber al menos 1 persona en la reserva.');
+            return;
+        }
+
+        setError('');
+        setLoadingReserva(true);
 
         try {
             await reservasService.create({
@@ -70,12 +106,16 @@ const DetalleSala = () => {
                 fecha: fecha,
                 hora_inicio: horarioSeleccionado.hora_inicio,
                 hora_fin: horarioSeleccionado.hora_fin,
-                cantidad_personas: cantidadPersonas
+                cantidad_personas: parseInt(cantidadPersonas)
             });
             alert('¡Reserva confirmada con éxito!');
             navigate('/cliente/mis-reservas');
         } catch (err) {
-            setError(err.response?.data?.error || 'Error al realizar la reserva');
+            const errorMsg = err.response?.data?.error || err.response?.data?.detail || 'Error al realizar la reserva';
+            setError(errorMsg);
+            console.error(err);
+        } finally {
+            setLoadingReserva(false);
         }
     };
 
@@ -109,6 +149,7 @@ const DetalleSala = () => {
     if (!sala) return <div className="p-10 text-center text-red-500">{error}</div>;
 
     const puedeReservar = sala.disponibilidad === 'disponible';
+    const fechas = generarFechas();
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen bg-slate-50">
@@ -147,63 +188,88 @@ const DetalleSala = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white p-6 rounded-lg shadow-md border">
-                        <h3 className="text-lg font-semibold mb-4">1. Elige la fecha</h3>
-                        <input 
-                            type="date" 
-                            className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-indigo-500"
-                            value={fecha}
-                            min={new Date().toISOString().split('T')[0]}
-                            onChange={(e) => setFecha(e.target.value)}
-                        />
-                    </div>
+                    <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+                        <h3 className="text-lg font-bold mb-4 text-gray-800">1. Selecciona la fecha</h3>
 
-                    <div className="bg-white p-6 rounded-lg shadow-md border">
-                        <h3 className="text-lg font-semibold mb-4">2. Elige el horario</h3>
-                        {loadingDisponibilidad ? (
-                            <p className="text-gray-500 text-sm">Cargando horarios...</p>
-                        ) : disponibilidad.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-2">
-                                {disponibilidad.map((bloque, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => {
-                                            setHorarioSeleccionado(bloque);
-                                            setMesaSeleccionada(null); // Resetear mesa al cambiar hora
-                                        }}
-                                        className={`p-2 text-sm rounded border ${
-                                            horarioSeleccionado === bloque 
-                                            ? 'bg-indigo-600 text-white border-indigo-600' 
-                                            : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
-                                        }`}
-                                    >
-                                        {bloque.hora_inicio.substring(0,5)} - {bloque.hora_fin.substring(0,5)}
-                                    </button>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-gray-400 text-sm">Selecciona una fecha para ver horarios.</p>
-                        )}
+                    <div className="grid grid-cols-4 gap-2">
+                        {fechas.map((f, index) => (
+                        <button
+                            key={index}
+                            onClick={() => setFecha(f.fechaISO)}
+                            className={`p-2 rounded-xl border text-center font-bold transition ${
+                                fecha === f.fechaISO
+                                    ? 'bg-yellow-500 scale-105 text-black shadow-lg scale-105'
+                                    : 'bg-gray-100 hover:bg-gray-200'
+                            }`}
+                        >
+                            <div className="text-xs uppercase">{f.dia}</div>
+                            <div className="text-lg">{f.numero}</div>
+                            <div className="text-xs">{f.mes}</div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+
+                    <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+                        <h3 className="text-lg font-bold mb-4 text-gray-800">2. Selecciona el horario</h3>
+                    {!fecha ? (
+                        <p className="text-gray-400">Primero selecciona una fecha</p>
+                    ) : loadingDisponibilidad ? (
+                        <p className="text-gray-500">Cargando horarios...</p>
+                    ) : disponibilidad.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-3">
+                            {disponibilidad.map((bloque, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => {
+                                    setHorarioSeleccionado(bloque);
+                                    setMesaSeleccionada(null);
+                            }}
+                            className={`p-3 rounded-xl font-bold transition-all ${
+                                horarioSeleccionado === bloque
+                                ? 'bg-indigo-600 text-white scale-105 shadow-lg'
+                                : 'bg-gray-100 hover:bg-gray-200'
+                            }`}
+                        >
+                            {bloque.hora_inicio.substring(0,5)} - {bloque.hora_fin.substring(0,5)}
+                            </button>
+                        ))}
                     </div>
+                ) : (
+                    <p className="text-gray-400">No hay horarios disponibles</p>
+                )}
+            </div>
                     
                     <div className="bg-white p-6 rounded-lg shadow-md border">
                         <h3 className="text-lg font-semibold mb-4">3. Detalles finales</h3>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad de personas</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad de personas *</label>
                         <input 
                             type="number" 
                             min="1" 
                             max="20"
-                            className="w-full border border-gray-300 p-2 rounded mb-4 focus:ring-2 focus:ring-indigo-500"
+                            className="w-full border border-gray-300 p-2.5 rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 outline-none"
                             value={cantidadPersonas}
-                            onChange={(e) => setCantidadPersonas(e.target.value)}
+                            onChange={(e) => setCantidadPersonas(parseInt(e.target.value) || 1)}
                         />
+                        
+                        {mesaSeleccionada && (
+                            <div className="bg-green-100 border border-green-300 rounded-xl p-4 mb-4 animate-pulse">
+                                <p className="text-green-700 font-bold">
+                                    ✅ Mesa seleccionada: {mesas.find(m => m.id === mesaSeleccionada)?.nombre}
+                                </p>
+                                <p className="text-sm text-green-600">
+                                    Capacidad: {mesas.find(m => m.id === mesaSeleccionada)?.capacidad} personas
+                                </p>
+                            </div>
+                        )}
                         
                         <button 
                             onClick={handleReservar}
-                            disabled={!mesaSeleccionada || !horarioSeleccionado || !puedeReservar}
-                            className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed transition shadow-sm text-lg"
+                            disabled={!mesaSeleccionada || !horarioSeleccionado || !puedeReservar || loadingReserva}
+                            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed transition shadow-sm text-base"
                         >
-                            {puedeReservar ? 'Confirmar Reserva' : 'Sala no disponible'}
+                            {loadingReserva ? 'Procesando...' : (puedeReservar ? 'Confirmar Reserva' : 'Sala no disponible')}
                         </button>
                     </div>
                 </div>

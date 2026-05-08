@@ -13,6 +13,7 @@ const GestionSalas = ({ onVerMesas }) => {
     const [descripcion, setDescripcion] = useState('');
     const [capacidadTotal, setCapacidadTotal] = useState(0);
     const [disponibilidad, setDisponibilidad] = useState('disponible');
+    const [habilitada, setHabilitada] = useState(true);
     const [imagenPrincipal, setImagenPrincipal] = useState(null);
     const [galeriaNuevas, setGaleriaNuevas] = useState([]);
 
@@ -48,6 +49,7 @@ const GestionSalas = ({ onVerMesas }) => {
         setDescripcion('');
         setCapacidadTotal(0);
         setDisponibilidad('disponible');
+        setHabilitada(true);
         setImagenPrincipal(null);
         setGaleriaNuevas([]);
         setPreviewPrincipal('');
@@ -62,6 +64,7 @@ const GestionSalas = ({ onVerMesas }) => {
         setDescripcion(sala.descripcion || '');
         setCapacidadTotal(sala.capacidad_total);
         setDisponibilidad(sala.disponibilidad || 'disponible');
+        setHabilitada(sala.habilitada);
         setPreviewPrincipal(sala.imagen_principal || '');
         setGaleriaExistente(sala.galeria || []);
         
@@ -95,6 +98,7 @@ const GestionSalas = ({ onVerMesas }) => {
         formData.append('descripcion', descripcion);
         formData.append('capacidad_total', capacidadTotal);
         formData.append('disponibilidad', disponibilidad);
+        formData.append('habilitada', habilitada);
         if (imagenPrincipal) {
             formData.append('imagen_principal', imagenPrincipal);
         }
@@ -211,6 +215,18 @@ const GestionSalas = ({ onVerMesas }) => {
                                     </select>
                                 </div>
                             </div>
+                            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                <input
+                                    type="checkbox"
+                                    id="habilitada"
+                                    checked={habilitada}
+                                    onChange={(e) => setHabilitada(e.target.checked)}
+                                    className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                />
+                                <label htmlFor="habilitada" className="text-sm font-semibold text-slate-700 cursor-pointer">
+                                    {habilitada ? '✓ Sala Habilitada' : '✗ Sala Deshabilitada'} - Los clientes pueden ver esta sala
+                                </label>
+                            </div>
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-1">Descripción</label>
                                 <textarea
@@ -298,6 +314,17 @@ const GestionSalas = ({ onVerMesas }) => {
                         <div className="p-5 flex flex-col flex-1">
                             <h3 className="text-xl font-black text-slate-800 mb-1">{sala.nombre}</h3>
                             <p className="text-indigo-600 font-bold text-sm mb-3 uppercase tracking-wider">{sala.tematica || 'Sin Temática'}</p>
+                            <div className="mb-3">
+                                {sala.habilitada ? (
+                                    <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold uppercase">
+                                        ✓ Habilitada (visible para clientes)
+                                    </span>
+                                ) : (
+                                    <span className="inline-block bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-bold uppercase">
+                                        ✗ Deshabilitada (oculta para clientes)
+                                    </span>
+                                )}
+                            </div>
                             <p className="text-slate-600 text-sm mb-4 line-clamp-2 flex-1">{sala.descripcion || 'Sin descripción.'}</p>
                             
                             <div className="flex justify-between items-center mb-5 bg-slate-50 p-3 rounded-lg border border-slate-100">
