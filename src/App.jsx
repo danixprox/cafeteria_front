@@ -19,6 +19,7 @@ import MisReservas from './pages/Cliente/MisReservas';
 import ClienteLayout from './pages/Cliente/ClienteLayout';
 
 import DashboardEmpleado from './pages/Empleado/DashboardEmpleado';
+import GestionReservas from './pages/Admin/GestionReservas';
 
 function App() {
   return (
@@ -40,7 +41,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/admin/reservas"
+          element={
+            <ProtectedRoute rolesPermitidos={['admin']}>
+              <GestionReservas />
+            </ProtectedRoute>
+          }
+        />
 
         {/* 👨‍🍳 EMPLEADO */}
         <Route

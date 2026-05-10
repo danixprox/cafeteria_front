@@ -4,6 +4,7 @@ export const reservasService = {
     getAll: () => api.get('/reservas/'),
     getMisReservas: () => api.get('/reservas/mis_reservas/'),
     create: (data) => api.post('/reservas/', data),
+    confirmar: (id) => api.patch(`/reservas/${id}/confirmar/`),
     cancelar: (id) => api.patch(`/reservas/${id}/cancelar/`),
     confirmarLlegada: (id) => api.patch(`/reservas/${id}/confirmar_llegada/`),
     liberar: (id) => api.patch(`/reservas/${id}/liberar/`),

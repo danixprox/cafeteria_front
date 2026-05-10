@@ -13,6 +13,7 @@ import { validarContrasena, obtenerRequisitos } from "../../utils/validation";
 
 import GestionSalas from "../../pages/Admin/GestionSalas";
 import GestionMesas from "../../pages/Admin/GestionMesas";
+import GestionReservas from "../../pages/Admin/GestionReservas";
 import AdminSidebar from "./AdminSidebar";
 
 import "../../App.css";
@@ -885,6 +886,9 @@ const AdminPage = () => {
   />
 )}
 
+{vista === "reservas" && (
+  <GestionReservas />
+)}
        </main>
     </div>
   );

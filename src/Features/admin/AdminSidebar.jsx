@@ -23,10 +23,14 @@ const AdminSidebar = ({ vista, setVista, mostrarInventario, setMostrarInventario
     }, []);
 
     const menuItems = [
-        { id: 'usuarios', label: 'Usuarios', icon: '👤' },
-        { id: 'bitacora', label: 'Bitácora', icon: '📜' },
-        { id: 'salas', label: 'Gestión de Salas', icon: '🚪' }
-    ];
+    { id: 'usuarios', label: 'Usuarios', icon: '👤' },
+
+    { id: 'bitacora', label: 'Bitácora', icon: '📜' },
+
+    { id: 'salas', label: 'Gestión de Salas', icon: '🚪' },
+
+    { id: 'reservas', label: 'Gestión de Reservas', icon: '📅' }
+   ];
 
     const handleSelectOption = (id) => {
         setVista(id);
