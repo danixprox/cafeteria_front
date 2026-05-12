@@ -85,6 +85,17 @@ const GestionSalas = ({ onVerMesas }) => {
         }
     };
 
+    const handleEliminarSala = async (id) => {
+        if(!window.confirm('¿Estás seguro de eliminar completamente esta sala? Se perderán sus mesas y configuración.')) return;
+        try {
+            await salasService.delete(id);
+            cargarSalas();
+            alert('Sala eliminada correctamente.');
+        } catch (error) {
+            alert(error.response?.data?.error || 'Error al eliminar la sala');
+        }
+    };
+
     const handleGuardarSala = async (e) => {
         e.preventDefault();
         
@@ -98,7 +109,8 @@ const GestionSalas = ({ onVerMesas }) => {
         formData.append('descripcion', descripcion);
         formData.append('capacidad_total', capacidadTotal);
         formData.append('disponibilidad', disponibilidad);
-        formData.append('habilitada', habilitada);
+        // Sincronizar habilitada con disponibilidad: si es 'no_disponible' se deshabilita
+        formData.append('habilitada', disponibilidad !== 'no_disponible' ? 'true' : 'false');
         if (imagenPrincipal) {
             formData.append('imagen_principal', imagenPrincipal);
         }
@@ -350,6 +362,12 @@ const GestionSalas = ({ onVerMesas }) => {
                                     className="bg-yellow-50 text-yellow-700 font-bold py-2 rounded-lg hover:bg-yellow-100 transition"
                                 >
                                     Editar Sala
+                                </button>
+                                <button 
+                                    onClick={() => handleEliminarSala(sala.id)}
+                                    className="col-span-2 mt-1 text-red-500 font-bold py-2 rounded-lg hover:bg-red-50 transition border border-red-100"
+                                >
+                                    Eliminar Sala
                                 </button>
                             </div>
                         </div>

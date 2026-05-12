@@ -251,6 +251,16 @@ const GestionMesas = ({ idSala, onVolver }) => {
                         {mesas.length === 0 && <li className="p-4 text-center text-sm text-gray-500">No hay mesas. Crea una para empezar.</li>}
                     </ul>
                 </div>
+
+                <div className="pt-4 border-t border-gray-200 mt-6">
+                    <button 
+                        onClick={onVolver}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 flex items-center justify-center gap-2"
+                    >
+                        <span>💾</span> Finalizar y Guardar Cambios
+                    </button>
+                    <p className="text-center text-xs text-gray-500 mt-2">Los cambios se guardan automáticamente, usa este botón para terminar.</p>
+                </div>
             </div>
 
             <div className="col-span-2">
