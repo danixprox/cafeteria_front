@@ -376,7 +376,7 @@ export const verificarCodigo = async (correo, codigo) => {
 export const obtenerBitacora = async () => {
   const token = localStorage.getItem("token");
 
-  const res = await fetch("http://127.0.0.1:8000/api/bitacora/", {
+  const res = await fetch(`${API_URL}/api/bitacora/`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

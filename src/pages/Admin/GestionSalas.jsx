@@ -24,7 +24,7 @@ const GestionSalas = ({ onVerMesas }) => {
     const getImageUrl = (imagePath) => {
         if (!imagePath) return null;
         if (imagePath.startsWith('http')) return imagePath;
-        return `http://localhost:8000${imagePath}`;
+        return `${import.meta.env.VITE_API_URL || ''}${imagePath}`;
     };
 
     const handleImageError = (e) => {

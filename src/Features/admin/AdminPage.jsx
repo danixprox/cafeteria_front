@@ -235,9 +235,10 @@ const AdminPage = () => {
   };
 
   const handleLogout = async () => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
     try {
       const token = localStorage.getItem('token');
-      await fetch('http://127.0.0.1:8000/api/logout/', {
+      await fetch(`${apiUrl}/api/logout/`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -311,8 +312,9 @@ const AdminPage = () => {
           return;
         }
 
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
         payload.contrasena = contrasena;
-        await fetch('http://127.0.0.1:8000/api/empleados/', {
+        await fetch(`${apiUrl}/api/empleados/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

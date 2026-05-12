@@ -23,7 +23,7 @@ const MisReservas = () => {
     }, []);
 
     const handleCancelar = async (id, reserva) => {
-        if(window.confirm('¿Estás seguro de cancelar esta reserva?')) {
+        if (window.confirm('¿Estás seguro de cancelar esta reserva?')) {
             try {
                 await reservasService.cancelar(id);
                 alert('Reserva cancelada exitosamente');
@@ -59,6 +59,78 @@ const MisReservas = () => {
             month: 'long',
             day: 'numeric'
         });
+    };
+
+    const handleExportarVoucher = (reserva) => {
+        const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+
+        const voucherWindow = window.open('', '_blank', 'width=600,height=800');
+        voucherWindow.document.write(`
+            <html>
+                <head>
+                    <title>Voucher de Reserva #${reserva.id}</title>
+                    <style>
+                        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #333; background-color: #f8fafc; }
+                        .voucher { background: white; border: 2px dashed #cbd5e1; padding: 40px; border-radius: 15px; max-width: 450px; margin: 0 auto; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+                        .header { text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 20px; }
+                        .header h1 { margin: 0; color: #4f46e5; font-size: 24px; text-transform: uppercase; letter-spacing: 1px;}
+                        .header p { margin: 5px 0 0; color: #64748b; font-size: 14px; }
+                        .row { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f8fafc; padding-bottom: 10px; }
+                        .label { font-weight: bold; color: #64748b; font-size: 12px; text-transform: uppercase; }
+                        .value { font-weight: 800; font-size: 16px; color: #1e293b; text-align: right; }
+                        .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #94a3b8; line-height: 1.5; }
+                        .code { background: #f1f5f9; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 16px; color: #334155; margin: 20px 0; font-weight: bold; text-align: center; letter-spacing: 2px;}
+                        @media print {
+                            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: white; padding: 0; }
+                            .voucher { border: 2px solid #cbd5e1; box-shadow: none; max-width: 100%; margin: 0; padding: 20px;}
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="voucher">
+                        <div class="header">
+                            <h1>☕ Cafetería Prototipo</h1>
+                            <p>Voucher Oficial de Reserva</p>
+                        </div>
+                        
+                        <div class="code">REF-${reserva.id}-${new Date(reserva.creada_en).getTime().toString().slice(-4)}</div>
+
+                        <div class="row">
+                            <div class="label">Titular</div>
+                            <div class="value">${usuario.nombre || 'Cliente'}</div>
+                        </div>
+                        <div class="row">
+                            <div class="label">Sala / Mesa</div>
+                            <div class="value">${reserva.sala_nombre}<br/><span style="font-size: 14px; color: #64748b;">${reserva.mesa_nombre}</span></div>
+                        </div>
+                        <div class="row">
+                            <div class="label">Fecha</div>
+                            <div class="value">${formatearFecha(reserva.fecha)}</div>
+                        </div>
+                        <div class="row">
+                            <div class="label">Horario</div>
+                            <div class="value">${reserva.hora_inicio?.substring(0, 5)} a ${reserva.hora_fin?.substring(0, 5)}</div>
+                        </div>
+                        <div class="row">
+                            <div class="label">Asistentes</div>
+                            <div class="value">${reserva.cantidad_personas} personas</div>
+                        </div>
+                        <div class="row">
+                            <div class="label">Estado</div>
+                            <div class="value" style="color: #16a34a; font-weight: 900;">CONFIRMADA ✓</div>
+                        </div>
+                        
+                        <div class="footer">
+                            <p>Este documento es válido como comprobante de su reserva.<br/>Por favor preséntelo al llegar al establecimiento.</p>
+                        </div>
+                    </div>
+                    <script>
+                        window.onload = function() { setTimeout(() => { window.print(); }, 500); }
+                    </script>
+                </body>
+            </html>
+        `);
+        voucherWindow.document.close();
     };
 
     if (loading) return (
@@ -98,7 +170,7 @@ const MisReservas = () => {
                     {activas.map(reserva => {
                         const badge = getEstadoBadge(reserva.estado);
                         const puedeCancel = puedeSerCancelada(reserva.estado);
-                        
+
                         return (
                             <div key={reserva.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition">
                                 <div className={`${badge.bg} ${badge.text} px-6 py-4 flex justify-between items-start`}>
@@ -110,7 +182,7 @@ const MisReservas = () => {
                                         {badge.icon} {reserva.estado.replace('_', ' ')}
                                     </span>
                                 </div>
-                                
+
                                 <div className="p-6">
                                     <div className="grid grid-cols-2 gap-4 mb-6">
                                         <div className="bg-slate-50 rounded-lg p-3">
@@ -133,14 +205,26 @@ const MisReservas = () => {
                                         </div>
                                     </div>
 
-                                    {puedeCancel && (
-                                        <button 
-                                            onClick={() => handleCancelar(reserva.id, reserva)}
-                                            className="w-full text-red-600 hover:bg-red-50 py-3 rounded-lg border-2 border-red-200 transition font-bold hover:border-red-300"
-                                        >
-                                            ✗ Cancelar Reserva
-                                        </button>
-                                    )}
+                                    <div className="flex flex-col gap-3">
+                                        {reserva.estado === 'confirmada' && (
+                                            <button
+                                                onClick={() => handleExportarVoucher(reserva)}
+                                                className="w-full text-indigo-700 bg-indigo-50 hover:bg-indigo-100 py-3 rounded-lg border-2 border-indigo-200 transition font-bold flex items-center justify-center gap-2"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                                Exportar Comprobante
+                                            </button>
+                                        )}
+
+                                        {puedeCancel && (
+                                            <button
+                                                onClick={() => handleCancelar(reserva.id, reserva)}
+                                                className="w-full text-red-600 hover:bg-red-50 py-3 rounded-lg border-2 border-red-200 transition font-bold hover:border-red-300 flex items-center justify-center gap-2"
+                                            >
+                                                <span>✗</span> Cancelar Reserva
+                                            </button>
+                                        )}
+                                    </div>
                                     {!puedeCancel && (
                                         <div className="text-center py-3 text-slate-500 font-semibold text-sm">
                                             No se puede cancelar en este estado
@@ -148,11 +232,11 @@ const MisReservas = () => {
                                     )}
                                 </div>
                             </div>
-                            
+
                         );
                     })}
                 </div>
-                
+
             )}
         </div>
     );

@@ -99,7 +99,7 @@ const ClientPage = () => {
             if (fotoFile) formData.append('foto_perfil', fotoFile);
 
             const res = await fetch(`${API_URL}/api/mi-perfil/`, {
-                method: 'PUT',
+                method: 'POST',
                 headers: { Authorization: `Bearer ${getToken()}` },
                 body: formData
             });
