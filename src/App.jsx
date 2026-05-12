@@ -16,14 +16,21 @@ import './App.css';
 import Salas from './pages/Cliente/Salas';
 import DetalleSala from './pages/Cliente/DetalleSala';
 import MisReservas from './pages/Cliente/MisReservas';
+import MisNotificaciones from './pages/Cliente/MisNotificaciones';
 import ClienteLayout from './pages/Cliente/ClienteLayout';
 
 import DashboardEmpleado from './pages/Empleado/DashboardEmpleado';
+
 import GestionReservas from './pages/Admin/GestionReservas';
+import ControlAsistencia from './pages/Admin/ControlAsistencia';
+import GestionNotificaciones from './pages/Admin/GestionNotificaciones';
 
 function App() {
+
   return (
+
     <Router>
+
       <Routes>
 
         {/* 🌍 Públicas */}
@@ -41,11 +48,30 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/admin/reservas"
           element={
             <ProtectedRoute rolesPermitidos={['admin']}>
               <GestionReservas />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/asistencia"
+          element={
+            <ProtectedRoute rolesPermitidos={['admin']}>
+              <ControlAsistencia />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/notificaciones"
+          element={
+            <ProtectedRoute rolesPermitidos={['admin']}>
+              <GestionNotificaciones />
             </ProtectedRoute>
           }
         />
@@ -59,6 +85,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/empleado/reservas"
           element={
@@ -77,17 +104,26 @@ function App() {
             </ProtectedRoute>
           }
         >
+
           <Route index element={<Navigate to="salas" replace />} />
+
           <Route path="salas" element={<Salas />} />
+
           <Route path="salas/:id" element={<DetalleSala />} />
+
           <Route path="mis-reservas" element={<MisReservas />} />
+
+          <Route path="notificaciones" element={<MisNotificaciones />} />
+
           <Route path="perfil" element={<ClientPage />} />
+
         </Route>
 
         {/* 🚫 Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
 
       </Routes>
+
     </Router>
   );
 }

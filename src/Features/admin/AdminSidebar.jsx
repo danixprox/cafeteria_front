@@ -1,4 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import {
+  Users,
+  ScrollText,
+  DoorOpen,
+  CalendarDays,
+  ClipboardCheck,
+  Bell
+} from "lucide-react";
 
 const AdminSidebar = ({ vista, setVista, mostrarInventario, setMostrarInventario, handleLogout }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -23,14 +31,38 @@ const AdminSidebar = ({ vista, setVista, mostrarInventario, setMostrarInventario
     }, []);
 
     const menuItems = [
-    { id: 'usuarios', label: 'Usuarios', icon: '👤' },
 
-    { id: 'bitacora', label: 'Bitácora', icon: '📜' },
+  {
+    id: 'usuarios',
+    label: 'Usuarios',
+    icon: <Users size={18} />
+  },
 
-    { id: 'salas', label: 'Gestión de Salas', icon: '🚪' },
+  {
+    id: 'bitacora',
+    label: 'Bitácora',
+    icon: <ScrollText size={18} />
+  },
 
-    { id: 'reservas', label: 'Gestión de Reservas', icon: '📅' }
-   ];
+  {
+    id: 'salas',
+    label: 'Gestión de Salas',
+    icon: <DoorOpen size={18} />
+  },
+
+  {
+    id: 'reservas',
+    label: 'Gestión de Reservas',
+    icon: <CalendarDays size={18} />
+  },
+
+  {
+    id: 'notificaciones',
+    label: 'Notificaciones',
+    icon: <Bell size={18} />
+  }
+
+];
 
     const handleSelectOption = (id) => {
         setVista(id);
