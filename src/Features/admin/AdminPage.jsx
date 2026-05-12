@@ -18,6 +18,8 @@ import AdminSidebar from "./AdminSidebar";
 
 import "../../App.css";
 
+import GestionNotificaciones from '../../pages/Admin/GestionNotificaciones';
+
 const AdminPage = () => {
   const navigate = useNavigate();
 
@@ -889,8 +891,17 @@ const AdminPage = () => {
 {vista === "reservas" && (
   <GestionReservas />
 )}
+
+
+{vista === "notificaciones" && (
+  <GestionNotificaciones />
+)}
+
        </main>
     </div>
   );
 };
+
+
+
 export default AdminPage;

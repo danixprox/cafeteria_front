@@ -40,11 +40,38 @@ const ClienteLayout = () => {
     };
 
     const menuItems = [
-        { path: '/cliente/salas', label: 'Reservar Sala', icon: '🚪' },
-        { path: '/cliente/mis-reservas', label: 'Mis Reservas', icon: '📅' },
-        { path: '/cliente/mis-pedidos', label: 'Mis Pedidos', icon: '📦' },
-        { path: '/cliente/perfil', label: 'Mi Perfil', icon: '👤' }
-    ];
+
+    {
+        path: '/cliente/salas',
+        label: 'Reservar Sala',
+        icon: '🚪'
+    },
+
+    {
+        path: '/cliente/mis-reservas',
+        label: 'Mis Reservas',
+        icon: '📅'
+    },
+
+    {
+        path: '/cliente/notificaciones',
+        label: 'Notificaciones',
+        icon: '🔔'
+    },
+
+    {
+        path: '/cliente/mis-pedidos',
+        label: 'Mis Pedidos',
+        icon: '📦'
+    },
+
+    {
+        path: '/cliente/perfil',
+        label: 'Mi Perfil',
+        icon: '👤'
+    }
+
+];
 
     const handleNavigation = (path) => {
         navigate(path);
