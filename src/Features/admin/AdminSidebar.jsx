@@ -60,6 +60,17 @@ const AdminSidebar = ({ vista, setVista, mostrarInventario, setMostrarInventario
     id: 'notificaciones',
     label: 'Notificaciones',
     icon: <Bell size={18} />
+  },
+  {
+    id: 'categorias',
+    label: 'Gestión de Categorías',
+    icon: <ClipboardCheck size={18} />
+  },
+
+  {
+    id: 'productos',
+    label: 'Gestión de Productos',
+    icon: <ClipboardCheck size={18} />
   }
 
 ];

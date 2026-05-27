@@ -19,7 +19,8 @@ import AdminSidebar from "./AdminSidebar";
 import "../../App.css";
 
 import GestionNotificaciones from '../../pages/Admin/GestionNotificaciones';
-
+import AdminCategorias from '../../pages/Admin/AdminCategorias';
+import AdminProductos from '../../pages/Admin/AdminProductos';
 const AdminPage = () => {
   const navigate = useNavigate();
 
@@ -897,6 +898,14 @@ const AdminPage = () => {
 
 {vista === "notificaciones" && (
   <GestionNotificaciones />
+)}
+
+{vista === "categorias" && (
+  <AdminCategorias />
+)}
+
+{vista === "productos" && (
+  <AdminProductos />
 )}
 
        </main>
