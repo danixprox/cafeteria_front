@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { salasService } from '../../services/salasService';
 import { reservasService } from '../../services/reservasService';
+import { productosService } from '../../services/productosService';
 import MapaMesas from '../../components/MapaMesas';
 
 const DetalleSala = () => {
@@ -16,42 +17,55 @@ const DetalleSala = () => {
     const [mesaSeleccionada, setMesaSeleccionada] = useState(null);
     const [cantidadPersonas, setCantidadPersonas] = useState(1);
     
+    // Estados para carrito y productos
+    const [deseaPedido, setDeseaPedido] = useState(false);
+    const [productos, setProductos] = useState([]);
+    const [carrito, setCarrito] = useState([]);
+    const [categorias, setCategorias] = useState([]);
+
     const [loading, setLoading] = useState(true);
     const [loadingDisponibilidad, setLoadingDisponibilidad] = useState(false);
     const [reservando, setReservando] = useState(false);
     const [error, setError] = useState('');
     const [exito, setExito] = useState('');
 
-
-const generarFechas = () => {
+    const generarFechas = () => {
         const fechas = [];
         const hoy = new Date();
-
         for (let i = 0; i < 7; i++) {
-            const fecha = new Date();
-            fecha.setDate(hoy.getDate() + i);
-
+            const f = new Date();
+            f.setDate(hoy.getDate() + i);
             fechas.push({
-                fechaISO: fecha.toISOString().split('T')[0],
-                dia: fecha.toLocaleDateString('es-ES', { weekday: 'short' }),
-                numero: fecha.getDate(),
-                mes: fecha.toLocaleDateString('es-ES', { month: 'short' })
+                fechaISO: f.toISOString().split('T')[0],
+                dia: f.toLocaleDateString('es-ES', { weekday: 'short' }),
+                numero: f.getDate(),
+                mes: f.toLocaleDateString('es-ES', { month: 'short' })
             });
         }
-    return fechas;
-};
-
-
-
+        return fechas;
+    };
 
     useEffect(() => {
         Promise.all([
             salasService.getById(id),
-            salasService.getMesas(id)
+            salasService.getMesas(id),
+            productosService.getDisponibles()
         ])
-        .then(([salaRes, mesasRes]) => {
+        .then(([salaRes, mesasRes, prodRes]) => {
             setSala(salaRes.data);
             setMesas(mesasRes.data);
+            
+            // Agrupar productos
+            const prods = prodRes.data || [];
+            setProductos(prods);
+            const catsMap = {};
+            prods.forEach(p => {
+                if(!catsMap[p.categoria]) {
+                    catsMap[p.categoria] = { nombre: p.categoria_nombre, productos: [] };
+                }
+                catsMap[p.categoria].productos.push(p);
+            });
+            setCategorias(Object.values(catsMap));
         })
         .catch(err => {
             console.error(err);
@@ -76,10 +90,40 @@ const generarFechas = () => {
         }
     }, [fecha, id]);
 
-    // La sala puede reservarse si está habilitada. 
-    // El campo 'disponibilidad' es solo informativo (estado visual), 
-    // la validación real del backend usa 'habilitada'.
     const puedeReservar = sala?.habilitada !== false;
+
+    // Funciones del carrito
+    const agregarAlCarrito = (producto, cantidad) => {
+        if(cantidad <= 0) return;
+        const itemExistente = carrito.find(item => item.id === producto.id);
+        if(itemExistente) {
+            if (itemExistente.cantidad + cantidad > producto.stock) {
+                alert('No hay suficiente stock');
+                return;
+            }
+            setCarrito(carrito.map(item => 
+                item.id === producto.id ? { ...item, cantidad: item.cantidad + cantidad, subtotal: (item.cantidad + cantidad) * producto.precio } : item
+            ));
+        } else {
+            if (cantidad > producto.stock) {
+                alert('No hay suficiente stock');
+                return;
+            }
+            setCarrito([...carrito, { 
+                id: producto.id, 
+                nombre: producto.nombre, 
+                precio: producto.precio, 
+                cantidad, 
+                subtotal: cantidad * producto.precio 
+            }]);
+        }
+    };
+
+    const eliminarDelCarrito = (idProducto) => {
+        setCarrito(carrito.filter(item => item.id !== idProducto));
+    };
+
+    const totalCarrito = carrito.reduce((acc, item) => acc + item.subtotal, 0);
 
     const handleReservar = async () => {
         setError('');
@@ -92,7 +136,7 @@ const generarFechas = () => {
         const mesaObjeto = mesas.find(m => m.id === mesaSeleccionada);
         if (!mesaObjeto) { setError('La mesa seleccionada no es válida.'); return; }
         if (parseInt(cantidadPersonas) > mesaObjeto.capacidad) {
-            setError(`La cantidad de personas (${cantidadPersonas}) excede la capacidad de la mesa "${mesaObjeto.nombre}" (máx. ${mesaObjeto.capacidad}).`);
+            setError(`La cantidad de personas excede la capacidad de la mesa "${mesaObjeto.nombre}" (máx. ${mesaObjeto.capacidad}).`);
             return;
         }
         if (parseInt(cantidadPersonas) < 1) { setError('La cantidad de personas debe ser al menos 1.'); return; }
@@ -105,23 +149,13 @@ const generarFechas = () => {
                 fecha: fecha,
                 hora_inicio: horarioSeleccionado.hora_inicio,
                 hora_fin: horarioSeleccionado.hora_fin,
-                cantidad_personas: parseInt(cantidadPersonas)
+                cantidad_personas: parseInt(cantidadPersonas),
+                productos: deseaPedido ? carrito.map(c => ({ id: c.id, cantidad: c.cantidad })) : []
             });
             setExito('🎉 ¡Reserva confirmada con éxito! Redirigiendo a tus reservas...');
             setTimeout(() => navigate('/cliente/mis-reservas'), 2000);
         } catch (err) {
-            const backendError = err.response?.data?.error;
-            if (backendError?.includes('deshabilitada')) {
-                setError('La sala no está disponible en este momento. Intenta con otra sala.');
-            } else if (backendError?.includes('no está activa')) {
-                setError('La mesa seleccionada no está activa. Selecciona otra mesa.');
-            } else if (backendError?.includes('capacidad')) {
-                setError('La cantidad de personas excede la capacidad de la mesa seleccionada.');
-            } else if (backendError?.includes('ya está reservada')) {
-                setError('La mesa seleccionada ya fue reservada en este horario. Elige otra mesa u horario.');
-            } else {
-                setError(backendError || 'Ocurrió un error al realizar la reserva. Intenta de nuevo.');
-            }
+            setError(err.response?.data?.error || 'Ocurrió un error al realizar la reserva. Intenta de nuevo.');
         } finally {
             setReservando(false);
         }
@@ -153,7 +187,6 @@ const generarFechas = () => {
         return <span className={`px-3 py-1 rounded-full text-xs font-black uppercase shadow-sm ${badges[estado] || 'bg-gray-100'}`}>{text[estado] || estado}</span>;
     };
 
-    // Contar mesas disponibles en el horario seleccionado
     const mesasDisponiblesEnHorario = horarioSeleccionado
         ? (horarioSeleccionado.mesas?.filter(m => m.disponible)?.length || 0)
         : 0;
@@ -165,7 +198,7 @@ const generarFechas = () => {
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen bg-slate-50">
-            {/* Cabecera con Imágenes */}
+            {/* Cabecera */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 bg-slate-100 p-2 h-[400px]">
                     <div className="col-span-1 md:col-span-2 lg:col-span-2 h-full rounded-2xl overflow-hidden relative">
@@ -290,33 +323,74 @@ const generarFechas = () => {
                             onChange={(e) => setCantidadPersonas(parseInt(e.target.value) || 1)}
                         />
 
-                        {/* Resumen de selección */}
-                        {(horarioSeleccionado || mesaSeleccionada) && (
-                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 mb-4 text-sm space-y-1">
-                                {fecha && <p className="text-slate-600"><span className="font-bold">Fecha:</span> {fecha}</p>}
-                                {horarioSeleccionado && <p className="text-slate-600"><span className="font-bold">Horario:</span> {horarioSeleccionado.hora_inicio.substring(0,5)} - {horarioSeleccionado.hora_fin.substring(0,5)}</p>}
-                                {mesaSeleccionada && (
-                                    <p className="text-slate-600">
-                                        <span className="font-bold">Mesa:</span> {mesas.find(m => m.id === mesaSeleccionada)?.nombre} 
-                                        <span className="text-slate-400"> (cap. {mesas.find(m => m.id === mesaSeleccionada)?.capacidad})</span>
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                        
-                        {mesaSeleccionada && (
-                            <div className="bg-green-100 border border-green-300 rounded-xl p-4 mb-4 animate-pulse">
-                                <p className="text-green-700 font-bold">✅ Mesa seleccionada: {mesas.find(m => m.id === mesaSeleccionada)?.nombre}</p>
-                                <p className="text-sm text-green-600">Capacidad: {mesas.find(m => m.id === mesaSeleccionada)?.capacidad} personas</p>
-                            </div>
-                        )}
+                        {/* Pedidos */}
+                        <div className="mt-4 pt-4 border-t border-slate-100">
+                            <label className="flex items-center gap-2 cursor-pointer mb-4">
+                                <input 
+                                    type="checkbox" 
+                                    className="w-5 h-5 text-indigo-600 rounded"
+                                    checked={deseaPedido}
+                                    onChange={(e) => setDeseaPedido(e.target.checked)}
+                                />
+                                <span className="font-bold text-slate-700">¿Desea agregar un pedido?</span>
+                            </label>
+
+                            {deseaPedido && (
+                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
+                                    <h4 className="font-bold text-sm mb-2 text-indigo-700">Catálogo de Productos</h4>
+                                    {categorias.length === 0 && <p className="text-xs text-slate-500">No hay productos disponibles.</p>}
+                                    <div className="space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                        {categorias.map((cat, idx) => (
+                                            <div key={idx}>
+                                                <h5 className="text-xs font-bold text-slate-500 uppercase mb-2">{cat.nombre}</h5>
+                                                <div className="space-y-2">
+                                                    {cat.productos.map(prod => (
+                                                        <div key={prod.id} className="flex justify-between items-center bg-white p-2 border rounded shadow-sm">
+                                                            <div className="flex-1">
+                                                                <p className="text-sm font-bold text-slate-700">{prod.nombre}</p>
+                                                                <p className="text-xs text-slate-500">${prod.precio} | Stock: {prod.stock}</p>
+                                                            </div>
+                                                            <button 
+                                                                onClick={() => agregarAlCarrito(prod, 1)}
+                                                                className="ml-2 bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-indigo-200 font-bold"
+                                                            >
+                                                                +
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Carrito Resumen */}
+                                    {carrito.length > 0 && (
+                                        <div className="mt-4 border-t pt-2">
+                                            <h5 className="font-bold text-sm mb-2">Tu Carrito:</h5>
+                                            {carrito.map(item => (
+                                                <div key={item.id} className="flex justify-between text-xs mb-1 items-center">
+                                                    <span>{item.cantidad}x {item.nombre}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold">${item.subtotal}</span>
+                                                        <button onClick={() => eliminarDelCarrito(item.id)} className="text-red-500">❌</button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            <div className="border-t pt-1 mt-1 text-right font-black text-indigo-700">
+                                                Total Pedido: ${totalCarrito.toFixed(2)}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                         
                         <button 
                             onClick={handleReservar}
                             disabled={!mesaSeleccionada || !horarioSeleccionado || !puedeReservar || reservando}
                             className={`w-full py-3.5 rounded-xl font-bold transition shadow-sm text-base flex items-center justify-center gap-2 ${!puedeReservar ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : mesaSeleccionada && horarioSeleccionado ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
                         >
-                            {reservando ? (<><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Procesando...</>) : !puedeReservar ? ('Sala deshabilitada') : !horarioSeleccionado ? ('Selecciona un horario') : !mesaSeleccionada ? ('Selecciona una mesa') : ('✓ Confirmar Reserva')}
+                            {reservando ? (<><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Procesando...</>) : !puedeReservar ? ('Sala deshabilitada') : !horarioSeleccionado ? ('Selecciona un horario') : !mesaSeleccionada ? ('Selecciona una mesa') : deseaPedido && carrito.length > 0 ? ('✓ Confirmar Reserva con Pedido') : ('✓ Confirmar Reserva')}
                         </button>
                     </div>
                 </div>
