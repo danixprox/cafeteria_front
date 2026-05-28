@@ -116,7 +116,7 @@ const AdminProductos = () => {
                             <input name="nombre" value={form.nombre} onChange={handleChange} required className="w-full border p-2 rounded" />
                         </div>
                         <div>
-                            <label className="block text-sm font-bold mb-1">Precio</label>
+                            <label className="block text-sm font-bold mb-1">Precio (Bs)</label>
                             <input type="number" step="0.01" name="precio" value={form.precio} onChange={handleChange} required className="w-full border p-2 rounded" />
                         </div>
                         <div>
@@ -159,7 +159,7 @@ const AdminProductos = () => {
                             <th className="px-6 py-3 text-left text-sm font-bold text-slate-500">Imagen</th>
                             <th className="px-6 py-3 text-left text-sm font-bold text-slate-500">Producto</th>
                             <th className="px-6 py-3 text-left text-sm font-bold text-slate-500">Categoría</th>
-                            <th className="px-6 py-3 text-left text-sm font-bold text-slate-500">Precio/Stock</th>
+                            <th className="px-6 py-3 text-left text-sm font-bold text-slate-500">Precio (Bs) / Stock</th>
                             <th className="px-6 py-3 text-right text-sm font-bold text-slate-500">Acciones</th>
                         </tr>
                     </thead>
@@ -175,7 +175,7 @@ const AdminProductos = () => {
                                 </td>
                                 <td className="px-6 py-4 font-bold">{prod.nombre}<br/><span className={`text-xs px-2 py-0.5 rounded-full ${prod.estado ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{prod.estado ? 'Activo' : 'Inactivo'}</span></td>
                                 <td className="px-6 py-4 text-slate-600">{prod.categoria_nombre}</td>
-                                <td className="px-6 py-4">${prod.precio}<br/><span className="text-sm text-slate-500">Stock: {prod.stock}</span></td>
+                                <td className="px-6 py-4">Bs {prod.precio}<br/><span className="text-sm text-slate-500">Stock: {prod.stock}</span></td>
                                 <td className="px-6 py-4 text-right space-x-2">
                                     <button onClick={() => handleEditar(prod)} className="text-indigo-600 font-bold hover:underline">Editar</button>
                                     <button onClick={() => handleEliminar(prod.id)} className="text-red-600 font-bold hover:underline">Eliminar</button>

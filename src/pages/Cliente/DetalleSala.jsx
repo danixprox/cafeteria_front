@@ -93,22 +93,27 @@ const DetalleSala = () => {
     const puedeReservar = sala?.habilitada !== false;
 
     // Funciones del carrito
+    const getStockDisponible = (productoId, stockOriginal) => {
+        const item = carrito.find(item => item.id === productoId);
+        return stockOriginal - (item ? item.cantidad : 0);
+    };
+
     const agregarAlCarrito = (producto, cantidad) => {
         if(cantidad <= 0) return;
+        
+        const stockDisponible = getStockDisponible(producto.id, producto.stock);
+
+        if (stockDisponible === 0 || cantidad > stockDisponible) {
+            alert('Producto sin stock disponible');
+            return;
+        }
+
         const itemExistente = carrito.find(item => item.id === producto.id);
         if(itemExistente) {
-            if (itemExistente.cantidad + cantidad > producto.stock) {
-                alert('No hay suficiente stock');
-                return;
-            }
             setCarrito(carrito.map(item => 
                 item.id === producto.id ? { ...item, cantidad: item.cantidad + cantidad, subtotal: (item.cantidad + cantidad) * producto.precio } : item
             ));
         } else {
-            if (cantidad > producto.stock) {
-                alert('No hay suficiente stock');
-                return;
-            }
             setCarrito([...carrito, { 
                 id: producto.id, 
                 nombre: producto.nombre, 
@@ -344,20 +349,24 @@ const DetalleSala = () => {
                                             <div key={idx}>
                                                 <h5 className="text-xs font-bold text-slate-500 uppercase mb-2">{cat.nombre}</h5>
                                                 <div className="space-y-2">
-                                                    {cat.productos.map(prod => (
+                                                    {cat.productos.map(prod => {
+                                                        const stockDisponible = getStockDisponible(prod.id, prod.stock);
+                                                        return (
                                                         <div key={prod.id} className="flex justify-between items-center bg-white p-2 border rounded shadow-sm">
                                                             <div className="flex-1">
                                                                 <p className="text-sm font-bold text-slate-700">{prod.nombre}</p>
-                                                                <p className="text-xs text-slate-500">${prod.precio} | Stock: {prod.stock}</p>
+                                                                <p className="text-xs text-slate-500">Bs {prod.precio} | Stock: {stockDisponible}</p>
                                                             </div>
                                                             <button 
                                                                 onClick={() => agregarAlCarrito(prod, 1)}
-                                                                className="ml-2 bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-indigo-200 font-bold"
+                                                                disabled={stockDisponible === 0}
+                                                                className={`ml-2 w-8 h-8 rounded-full flex items-center justify-center font-bold ${stockDisponible === 0 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
                                                             >
                                                                 +
                                                             </button>
                                                         </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         ))}
@@ -371,13 +380,13 @@ const DetalleSala = () => {
                                                 <div key={item.id} className="flex justify-between text-xs mb-1 items-center">
                                                     <span>{item.cantidad}x {item.nombre}</span>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="font-bold">${item.subtotal}</span>
+                                                        <span className="font-bold">Bs {item.subtotal}</span>
                                                         <button onClick={() => eliminarDelCarrito(item.id)} className="text-red-500">❌</button>
                                                     </div>
                                                 </div>
                                             ))}
                                             <div className="border-t pt-1 mt-1 text-right font-black text-indigo-700">
-                                                Total Pedido: ${totalCarrito.toFixed(2)}
+                                                Total Pedido: Bs {totalCarrito.toFixed(2)}
                                             </div>
                                         </div>
                                     )}
