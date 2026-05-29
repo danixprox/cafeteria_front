@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { obtenerEmpleados, obtenerClientes } from '../../services/api';
 import GestionReservas from "../../pages/Admin/GestionReservas";
 import EmployeeSidebar from "./EmployeeSidebar";
+import PanelPedidosEmpleado from '../../pages/Empleado/PanelPedidosEmpleado';
+import PedidosPage from '../../pages/Empleado/PedidosPage';
 
 const EmployeePage = () => {
   const navigate = useNavigate();
@@ -100,7 +102,7 @@ const EmployeePage = () => {
                   </h1>
 
                   <p className="mt-2 text-slate-600">
-                    {usuario?.nombre} — {usuario?.cod_rol?.cod_rol || usuario?.rol}
+                    {usuario?.nombre}
                   </p>
 
                 </div>
@@ -243,79 +245,8 @@ const EmployeePage = () => {
 
             </main>
 
-            {/* INVENTARIO */}
-            <section className="rounded-[2rem] bg-white p-8 shadow-lg ring-1 ring-slate-200">
-
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-                <div>
-
-                  <p className="text-sm uppercase tracking-[0.35em] text-amber-700">
-                    Inventario
-                  </p>
-
-                  <h2 className="mt-3 text-2xl font-semibold text-slate-900">
-                    Control rápido
-                  </h2>
-
-                </div>
-
-                <p className="text-sm text-slate-500">
-                  Observa el stock de productos clave.
-                </p>
-
-              </div>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-                {[
-                  { nombre: 'Café', stock: 25 },
-                  { nombre: 'Leche', stock: 10 },
-                  { nombre: 'Pan', stock: 5 },
-                  { nombre: 'Azúcar', stock: 0 },
-                ].map((item, index) => {
-
-                  let estado = 'Disponible';
-                  let color = 'text-emerald-600';
-
-                  if (item.stock <= 5 && item.stock > 0) {
-                    estado = 'Bajo';
-                    color = 'text-amber-600';
-                  }
-
-                  if (item.stock === 0) {
-                    estado = 'Agotado';
-                    color = 'text-red-600';
-                  }
-
-                  return (
-
-                    <div
-                      key={index}
-                      className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
-                    >
-
-                      <p className="font-semibold text-slate-900">
-                        {item.nombre}
-                      </p>
-
-                      <p className="mt-2 text-sm text-slate-600">
-                        Stock: {item.stock}
-                      </p>
-
-                      <p className={`mt-3 text-sm font-semibold ${color}`}>
-                        {estado}
-                      </p>
-
-                    </div>
-
-                  );
-
-                })}
-
-              </div>
-
-            </section>
+            {/* PEDIDOS */}
+            <PanelPedidosEmpleado />
 
           </>
 
@@ -324,6 +255,11 @@ const EmployeePage = () => {
         {/* GESTION RESERVAS */}
         {vista === "reservas" && (
           <GestionReservas />
+        )}
+
+        {/* PEDIDOS - vista completa desde sidebar */}
+        {vista === "pedidos" && (
+          <PedidosPage />
         )}
 
       </div>

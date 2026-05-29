@@ -32,11 +32,15 @@ const DetalleSala = () => {
     const generarFechas = () => {
         const fechas = [];
         const hoy = new Date();
+        const y0 = hoy.getFullYear(), m0 = hoy.getMonth(), d0 = hoy.getDate();
         for (let i = 0; i < 7; i++) {
-            const f = new Date();
-            f.setDate(hoy.getDate() + i);
+            // Construir con componentes locales para evitar el desfase UTC
+            const f = new Date(y0, m0, d0 + i);
+            const y = f.getFullYear();
+            const m = String(f.getMonth() + 1).padStart(2, '0');
+            const d = String(f.getDate()).padStart(2, '0');
             fechas.push({
-                fechaISO: f.toISOString().split('T')[0],
+                fechaISO: `${y}-${m}-${d}`,
                 dia: f.toLocaleDateString('es-ES', { weekday: 'short' }),
                 numero: f.getDate(),
                 mes: f.toLocaleDateString('es-ES', { month: 'short' })
@@ -49,7 +53,7 @@ const DetalleSala = () => {
         Promise.all([
             salasService.getById(id),
             salasService.getMesas(id),
-            productosService.getDisponibles()
+            productosService.getActivos()
         ])
         .then(([salaRes, mesasRes, prodRes]) => {
             setSala(salaRes.data);
@@ -92,34 +96,23 @@ const DetalleSala = () => {
 
     const puedeReservar = sala?.habilitada !== false;
 
-    // Funciones del carrito
-    const getStockDisponible = (productoId, stockOriginal) => {
-        const item = carrito.find(item => item.id === productoId);
-        return stockOriginal - (item ? item.cantidad : 0);
-    };
-
+    // Funciones del carrito (sin validación de stock — es una preorden, no un pedido)
     const agregarAlCarrito = (producto, cantidad) => {
-        if(cantidad <= 0) return;
-        
-        const stockDisponible = getStockDisponible(producto.id, producto.stock);
-
-        if (stockDisponible === 0 || cantidad > stockDisponible) {
-            alert('Producto sin stock disponible');
-            return;
-        }
-
+        if (cantidad <= 0) return;
         const itemExistente = carrito.find(item => item.id === producto.id);
-        if(itemExistente) {
-            setCarrito(carrito.map(item => 
-                item.id === producto.id ? { ...item, cantidad: item.cantidad + cantidad, subtotal: (item.cantidad + cantidad) * producto.precio } : item
+        if (itemExistente) {
+            setCarrito(carrito.map(item =>
+                item.id === producto.id
+                    ? { ...item, cantidad: item.cantidad + cantidad, subtotal: (item.cantidad + cantidad) * producto.precio }
+                    : item
             ));
         } else {
-            setCarrito([...carrito, { 
-                id: producto.id, 
-                nombre: producto.nombre, 
-                precio: producto.precio, 
-                cantidad, 
-                subtotal: cantidad * producto.precio 
+            setCarrito([...carrito, {
+                id: producto.id,
+                nombre: producto.nombre,
+                precio: producto.precio,
+                cantidad,
+                subtotal: cantidad * producto.precio
             }]);
         }
     };
@@ -349,24 +342,20 @@ const DetalleSala = () => {
                                             <div key={idx}>
                                                 <h5 className="text-xs font-bold text-slate-500 uppercase mb-2">{cat.nombre}</h5>
                                                 <div className="space-y-2">
-                                                    {cat.productos.map(prod => {
-                                                        const stockDisponible = getStockDisponible(prod.id, prod.stock);
-                                                        return (
+                                                    {cat.productos.map(prod => (
                                                         <div key={prod.id} className="flex justify-between items-center bg-white p-2 border rounded shadow-sm">
                                                             <div className="flex-1">
                                                                 <p className="text-sm font-bold text-slate-700">{prod.nombre}</p>
-                                                                <p className="text-xs text-slate-500">Bs {prod.precio} | Stock: {stockDisponible}</p>
+                                                                <p className="text-xs text-slate-500">Bs {prod.precio}</p>
                                                             </div>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => agregarAlCarrito(prod, 1)}
-                                                                disabled={stockDisponible === 0}
-                                                                className={`ml-2 w-8 h-8 rounded-full flex items-center justify-center font-bold ${stockDisponible === 0 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
+                                                                className="ml-2 w-8 h-8 rounded-full flex items-center justify-center font-bold bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
                                                             >
                                                                 +
                                                             </button>
                                                         </div>
-                                                        );
-                                                    })}
+                                                    ))}
                                                 </div>
                                             </div>
                                         ))}

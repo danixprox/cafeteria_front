@@ -3,6 +3,8 @@ import api from './axiosClient';
 export const productosService = {
     getAll: () => api.get('/productos/'),
     getDisponibles: () => api.get('/productos/disponibles/'),
+    // Para catálogo de preórdenes: todos los activos, incluso con stock 0
+    getActivos: () => api.get('/productos/activos/'),
     getById: (id) => api.get(`/productos/${id}/`),
     create: (data) => {
         const formData = new FormData();

@@ -43,6 +43,12 @@ const EmployeeSidebar = ({ vista, setVista, handleLogout }) => {
             id: 'reservas',
             label: 'Gestión Reservas',
             icon: '📅'
+        },
+
+        {
+            id: 'pedidos',
+            label: 'Pedidos',
+            icon: '🧾'
         }
 
     ];
