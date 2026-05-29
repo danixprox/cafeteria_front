@@ -96,14 +96,25 @@ const DetalleSala = () => {
 
     const puedeReservar = sala?.habilitada !== false;
 
-    // Funciones del carrito (sin validación de stock — es una preorden, no un pedido)
+    // Funciones del carrito con validación de stock
     const agregarAlCarrito = (producto, cantidad) => {
         if (cantidad <= 0) return;
+        
         const itemExistente = carrito.find(item => item.id === producto.id);
+        const cantidadActual = itemExistente ? itemExistente.cantidad : 0;
+        const nuevaCantidad = cantidadActual + cantidad;
+
+        if (nuevaCantidad > producto.stock) {
+            setError(`No hay suficiente stock para "${producto.nombre}". Disponible: ${producto.stock}.`);
+            return;
+        }
+
+        setError(''); // Limpiar errores si la operación es exitosa
+
         if (itemExistente) {
             setCarrito(carrito.map(item =>
                 item.id === producto.id
-                    ? { ...item, cantidad: item.cantidad + cantidad, subtotal: (item.cantidad + cantidad) * producto.precio }
+                    ? { ...item, cantidad: nuevaCantidad, subtotal: nuevaCantidad * producto.precio }
                     : item
             ));
         } else {
@@ -117,7 +128,24 @@ const DetalleSala = () => {
         }
     };
 
+    const disminuirCantidad = (idProducto) => {
+        setError(''); // Limpiar errores
+        const item = carrito.find(i => i.id === idProducto);
+        if (!item) return;
+
+        if (item.cantidad <= 1) {
+            eliminarDelCarrito(idProducto);
+        } else {
+            setCarrito(carrito.map(i =>
+                i.id === idProducto
+                    ? { ...i, cantidad: i.cantidad - 1, subtotal: (i.cantidad - 1) * i.precio }
+                    : i
+            ));
+        }
+    };
+
     const eliminarDelCarrito = (idProducto) => {
+        setError(''); // Limpiar errores
         setCarrito(carrito.filter(item => item.id !== idProducto));
     };
 
@@ -342,20 +370,34 @@ const DetalleSala = () => {
                                             <div key={idx}>
                                                 <h5 className="text-xs font-bold text-slate-500 uppercase mb-2">{cat.nombre}</h5>
                                                 <div className="space-y-2">
-                                                    {cat.productos.map(prod => (
-                                                        <div key={prod.id} className="flex justify-between items-center bg-white p-2 border rounded shadow-sm">
-                                                            <div className="flex-1">
-                                                                <p className="text-sm font-bold text-slate-700">{prod.nombre}</p>
-                                                                <p className="text-xs text-slate-500">Bs {prod.precio}</p>
+                                                    {cat.productos.map(prod => {
+                                                        const itemEnCarrito = carrito.find(i => i.id === prod.id);
+                                                        const cantEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
+                                                        const sinStock = prod.stock === 0;
+                                                        const limiteAlcanzado = cantEnCarrito >= prod.stock;
+
+                                                        return (
+                                                            <div key={prod.id} className="flex justify-between items-center bg-white p-2 border rounded shadow-sm">
+                                                                <div className="flex-1">
+                                                                    <p className="text-sm font-bold text-slate-700">{prod.nombre}</p>
+                                                                    <p className="text-xs text-slate-500">Bs {prod.precio}</p>
+                                                                    <p className="text-[11px] font-semibold text-slate-600">Stock disponible: {prod.stock}</p>
+                                                                </div>
+                                                                {sinStock ? (
+                                                                    <span className="text-xs font-bold text-red-500 uppercase px-2">Sin stock</span>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={() => agregarAlCarrito(prod, 1)}
+                                                                        disabled={limiteAlcanzado}
+                                                                        className={`ml-2 w-8 h-8 rounded-full flex items-center justify-center font-bold transition ${limiteAlcanzado ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
+                                                                        title={limiteAlcanzado ? "Límite de stock alcanzado" : "Agregar 1 unidad"}
+                                                                    >
+                                                                        +
+                                                                    </button>
+                                                                )}
                                                             </div>
-                                                            <button
-                                                                onClick={() => agregarAlCarrito(prod, 1)}
-                                                                className="ml-2 w-8 h-8 rounded-full flex items-center justify-center font-bold bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-                                                            >
-                                                                +
-                                                            </button>
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         ))}
@@ -364,17 +406,52 @@ const DetalleSala = () => {
                                     {/* Carrito Resumen */}
                                     {carrito.length > 0 && (
                                         <div className="mt-4 border-t pt-2">
-                                            <h5 className="font-bold text-sm mb-2">Tu Carrito:</h5>
-                                            {carrito.map(item => (
-                                                <div key={item.id} className="flex justify-between text-xs mb-1 items-center">
-                                                    <span>{item.cantidad}x {item.nombre}</span>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-bold">Bs {item.subtotal}</span>
-                                                        <button onClick={() => eliminarDelCarrito(item.id)} className="text-red-500">❌</button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            <div className="border-t pt-1 mt-1 text-right font-black text-indigo-700">
+                                            <h5 className="font-bold text-sm mb-2 text-indigo-700">Tu Carrito:</h5>
+                                            <div className="space-y-2">
+                                                {carrito.map(item => {
+                                                    const prodOriginal = productos.find(p => p.id === item.id);
+                                                    const maxStock = prodOriginal ? prodOriginal.stock : 0;
+                                                    const limiteAlcanzado = item.cantidad >= maxStock;
+
+                                                    return (
+                                                        <div key={item.id} className="flex justify-between text-xs items-center bg-white p-2 rounded border border-slate-200 shadow-xs">
+                                                            <div className="flex-1 min-w-0 pr-2">
+                                                                <p className="font-bold text-slate-700 truncate">{item.nombre}</p>
+                                                                <p className="text-slate-500 font-medium">Bs {item.precio} x {item.cantidad}</p>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                                <button
+                                                                    onClick={() => disminuirCantidad(item.id)}
+                                                                    className="w-6 h-6 rounded bg-red-100 text-red-700 hover:bg-red-200 flex items-center justify-center font-bold text-sm transition"
+                                                                    title="Disminuir cantidad"
+                                                                >
+                                                                    -
+                                                                </button>
+                                                                <span className="font-bold w-4 text-center">{item.cantidad}</span>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const prod = productos.find(p => p.id === item.id);
+                                                                        if (prod) agregarAlCarrito(prod, 1);
+                                                                    }}
+                                                                    disabled={limiteAlcanzado}
+                                                                    className={`w-6 h-6 rounded flex items-center justify-center font-bold text-sm transition ${limiteAlcanzado ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                                                                    title={limiteAlcanzado ? "Límite de stock alcanzado" : "Aumentar cantidad"}
+                                                                >
+                                                                    +
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => eliminarDelCarrito(item.id)} 
+                                                                    className="text-red-500 hover:scale-110 transition ml-1"
+                                                                    title="Quitar producto"
+                                                                >
+                                                                    ❌
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            <div className="border-t pt-2 mt-2 text-right font-black text-indigo-700 text-sm">
                                                 Total Pedido: Bs {totalCarrito.toFixed(2)}
                                             </div>
                                         </div>
