@@ -20,6 +20,10 @@ import MisNotificaciones from './pages/Cliente/MisNotificaciones';
 import ClienteLayout from './pages/Cliente/ClienteLayout';
 
 import DashboardEmpleado from './pages/Empleado/DashboardEmpleado';
+import CocineroLayout from './pages/Cocinero/CocineroLayout';
+import PerfilCocinero from './pages/Cocinero/PerfilCocinero';
+import ComandasCocina from './pages/Cocinero/ComandasCocina';
+import DetalleComanda from './pages/Cocinero/DetalleComanda';
 
 import GestionReservas from './pages/Admin/GestionReservas';
 import ControlAsistencia from './pages/Admin/ControlAsistencia';
@@ -76,11 +80,26 @@ function App() {
           }
         />
 
+        {/* 👨‍🍳 COCINERO */}
+        <Route
+          path="/cocinero"
+          element={
+            <ProtectedRoute rolesPermitidos={['cocinero']}>
+              <CocineroLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="comandas" replace />} />
+          <Route path="perfil" element={<PerfilCocinero />} />
+          <Route path="comandas" element={<ComandasCocina />} />
+          <Route path="comandas/:id" element={<DetalleComanda />} />
+        </Route>
+
         {/* 👨‍🍳 EMPLEADO */}
         <Route
           path="/empleado"
           element={
-            <ProtectedRoute rolesPermitidos={['emp', 'mesero', 'cocinero']}>
+            <ProtectedRoute rolesPermitidos={['emp', 'mesero']}>
               <EmployeePage />
             </ProtectedRoute>
           }
@@ -89,7 +108,7 @@ function App() {
         <Route
           path="/empleado/reservas"
           element={
-            <ProtectedRoute rolesPermitidos={['emp', 'mesero', 'cocinero']}>
+            <ProtectedRoute rolesPermitidos={['emp', 'mesero']}>
               <DashboardEmpleado />
             </ProtectedRoute>
           }

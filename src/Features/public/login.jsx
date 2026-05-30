@@ -50,17 +50,17 @@ export default function Login() {
 
       setTimeout(() => {
         const rolObj = datos.usuario.cod_rol;
-        const rol =
-          typeof rolObj === "object"
-            ? rolObj.cod_rol
-            : rolObj || datos.usuario.rol;
+        const rolValor = typeof rolObj === 'object' ? rolObj.cod_rol : rolObj || datos.usuario.rol || '';
+        const rol = typeof rolValor === 'string' ? rolValor.toLowerCase() : '';
 
-        if (rol === "admin") {
-          navigate("/admin");
-        } else if (["emp", "mesero", "cocinero"].includes(rol)) {
-          navigate("/empleado");
+        if (rol === 'admin') {
+          navigate('/admin');
+        } else if (rol === 'cocinero') {
+          navigate('/cocinero/comandas');
+        } else if (rol === 'mesero' || rol === 'emp') {
+          navigate('/empleado');
         } else {
-          navigate("/cliente");
+          navigate('/cliente');
         }
       }, 1000);
     } catch (err) {
