@@ -1,14 +1,35 @@
-import React, { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PanelPedidosNormales from './PanelPedidosNormales';
+import PanelPedidos from './PanelPedidos';
 import PanelPreordenes from './PanelPreordenes';
+import pedidosService from '../../services/pedidosService';
 
 const TABS = [
-  { id: 'normales',   label: 'Pedidos normales', icon: '🧾' },
-  { id: 'preordenes', label: 'Preórdenes',        icon: '📋' },
+  { id: 'normales',   label: 'Tomar pedidos', icon: '🧾' },
+  { id: 'pedidos',    label: 'Pedidos',        icon: '📑' },
+  { id: 'preordenes', label: 'Preórdenes',     icon: '📋' },
 ];
 
 const PedidosPage = () => {
-  const [tab, setTab] = useState('normales');
+  const [tab, setTab]                   = useState('normales');
+  const [pedidos, setPedidos]           = useState([]);
+  const [cargandoPedidos, setCargando]  = useState(false);
+
+  const cargarPedidos = useCallback(async () => {
+    setCargando(true);
+    try {
+      const res = await pedidosService.getAll();
+      const todos = Array.isArray(res.data) ? res.data : [];
+      // Incluye pedidos directos (sin reserva) Y pedidos de check-in (con reserva)
+      setPedidos(todos.sort((a, b) => b.id - a.id));
+    } catch {
+      // fallo silencioso: la lista queda vacía
+    } finally {
+      setCargando(false);
+    }
+  }, []);
+
+  useEffect(() => { cargarPedidos(); }, [cargarPedidos]);
 
   return (
     <div className="space-y-6">
@@ -30,7 +51,16 @@ const PedidosPage = () => {
         ))}
       </div>
 
-      {tab === 'normales'   && <PanelPedidosNormales />}
+      {tab === 'normales'   && (
+        <PanelPedidosNormales onPedidoCreado={cargarPedidos} />
+      )}
+      {tab === 'pedidos'    && (
+        <PanelPedidos
+          pedidos={pedidos}
+          cargando={cargandoPedidos}
+          onRecargar={cargarPedidos}
+        />
+      )}
       {tab === 'preordenes' && <PanelPreordenes />}
     </div>
   );

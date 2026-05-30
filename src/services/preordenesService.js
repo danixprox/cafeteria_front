@@ -3,6 +3,8 @@ import axiosClient from './axiosClient';
 const preordenesService = {
   // Mesero: listar preórdenes del día (desde las 3PM)
   getAll: () => axiosClient.get('/preordenes/'),
+  // Mesero: solo preórdenes de hoy (endpoint filtrado del backend)
+  getHoy: () => axiosClient.get('/preordenes/hoy/'),
 
   // Mesero: gestionar estado
   marcarConPedido: (id) => axiosClient.patch(`/preordenes/${id}/marcar_con_pedido/`),

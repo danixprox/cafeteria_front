@@ -7,7 +7,7 @@ import SelectorMesas from './SelectorMesas';
 import CatalogoProductos from './CatalogoProductos';
 import ResumenPedido from './ResumenPedido';
 
-const PanelPedidosNormales = () => {
+const PanelPedidosNormales = ({ onPedidoCreado }) => {
   const [paso, setPaso] = useState('salas');
   const [salas, setSalas] = useState([]);
   const [mesas, setMesas] = useState([]);
@@ -126,6 +126,7 @@ const PanelPedidosNormales = () => {
 
       setExito(`Pedido confirmado para ${mesaSeleccionada.nombre}`);
       setCarrito({});
+      onPedidoCreado?.();
 
       const [mesasRes, prodRes] = await Promise.all([
         salasService.getMesas(salaSeleccionada.id),
