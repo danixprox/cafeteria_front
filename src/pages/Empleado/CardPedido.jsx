@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import pedidosService from '../../services/pedidosService';
+
 const ESTADO_CFG = {
   pendiente:      { label: 'Pendiente',       badge: 'bg-slate-100 text-slate-600',     dot: 'bg-slate-400'    },
   confirmado:     { label: 'Confirmado',      badge: 'bg-amber-100 text-amber-700',     dot: 'bg-amber-500'    },
@@ -8,9 +11,13 @@ const ESTADO_CFG = {
   cancelado:      { label: 'Cancelado',       badge: 'bg-red-100 text-red-600',         dot: 'bg-red-400'      },
 };
 
-const CardPedido = ({ pedido }) => {
+const CardPedido = ({ pedido, onRecargar }) => {
+  const [accionCargando, setAccionCargando] = useState(false);
   const cfg          = ESTADO_CFG[pedido.estado] || ESTADO_CFG.confirmado;
   const desdePreorden = Boolean(pedido.reserva_id);
+
+  const mostrarBotonEntregado = pedido.estado === 'lista';
+  const mostrarBotonCancelar = pedido.estado === 'pendiente' || pedido.estado === 'confirmado';
 
   return (
     <div className="rounded-3xl ring-1 ring-slate-200 bg-white flex flex-col overflow-hidden shadow-sm">
@@ -94,6 +101,48 @@ const CardPedido = ({ pedido }) => {
           Bs. {parseFloat(pedido.total).toFixed(2)}
         </span>
       </div>
+
+        {(mostrarBotonEntregado || mostrarBotonCancelar) && (
+          <div className="mx-5 mb-5 flex flex-wrap gap-3">
+            {mostrarBotonEntregado && (
+              <button
+                type="button"
+                disabled={accionCargando}
+                onClick={async () => {
+                  setAccionCargando(true);
+                  try {
+                    await pedidosService.marcarEntregado(pedido.id);
+                    onRecargar?.();
+                  } finally {
+                    setAccionCargando(false);
+                  }
+                }}
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+              >
+                Marcar entregado
+              </button>
+            )}
+
+            {mostrarBotonCancelar && (
+              <button
+                type="button"
+                disabled={accionCargando}
+                onClick={async () => {
+                  setAccionCargando(true);
+                  try {
+                    await pedidosService.cancelarPedido(pedido.id);
+                    onRecargar?.();
+                  } finally {
+                    setAccionCargando(false);
+                  }
+                }}
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+              >
+                Cancelar pedido
+              </button>
+            )}
+          </div>
+        )}
     </div>
   );
 };
