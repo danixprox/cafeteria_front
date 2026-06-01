@@ -21,6 +21,7 @@ import "../../App.css";
 import GestionNotificaciones from '../../pages/Admin/GestionNotificaciones';
 import AdminCategorias from '../../pages/Admin/AdminCategorias';
 import AdminProductos from '../../pages/Admin/AdminProductos';
+import AdminHistorialPedidos from '../../pages/Admin/HistorialPedidos';
 const AdminPage = () => {
   const navigate = useNavigate();
 
@@ -750,6 +751,12 @@ const AdminPage = () => {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {vista === 'historial_pedidos' && (
+          <div className="bg-white rounded-3xl shadow-sm p-6">
+            <AdminHistorialPedidos />
           </div>
         )}
          

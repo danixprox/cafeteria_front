@@ -5,10 +5,24 @@ const ClienteLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [isOpen, setIsOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
     const dropdownRef = useRef(null);
 
-    // Cerrar al presionar Escape o hacer clic fuera
+    // Cerrar al presionar Escape o hacer clic fuera y manejar notificaciones
     useEffect(() => {
+        // Obtener contador de notificaciones no leídas
+        let mounted = true;
+        const cargarCount = async () => {
+            try {
+                const { contarNoLeidas } = await import('../../services/notificacionesService');
+                const res = await contarNoLeidas();
+                if (mounted) setUnreadCount(res.count || 0);
+            } catch (e) {
+                // ignore
+            }
+        };
+        cargarCount();
+
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') setIsOpen(false);
         };
@@ -19,9 +33,20 @@ const ClienteLayout = () => {
         };
         document.addEventListener('keydown', handleKeyDown);
         document.addEventListener('mousedown', handleClickOutside);
+
+        // Escuchar actualizaciones de notificaciones
+        const onNotifUpdate = (e) => {
+            try {
+                setUnreadCount(e.detail.count || 0);
+            } catch (err) { }
+        };
+        window.addEventListener('notificaciones:update', onNotifUpdate);
+
         return () => {
+            mounted = false;
             document.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('notificaciones:update', onNotifUpdate);
         };
     }, []);
 
@@ -54,11 +79,7 @@ const ClienteLayout = () => {
         icon: '📅'
     },
 
-    {
-        path: '/cliente/notificaciones',
-        label: 'Notificaciones',
-        icon: '🔔'
-    },
+
 
     {
         path: '/cliente/mis-pedidos',
@@ -97,6 +118,15 @@ const ClienteLayout = () => {
                             </svg>
                             <span className="hidden sm:inline">Menú</span>
                         </button>
+
+                        <div className="ml-4 relative">
+                            <button onClick={() => navigate('/cliente/notificaciones')} className="p-1 rounded-full hover:bg-slate-100">
+                                <span className="text-xl">🔔</span>
+                            </button>
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">{unreadCount}</span>
+                            )}
+                        </div>
 
                         <h2 className="text-xl font-black text-slate-800 tracking-tight ml-2">
                             ☕ Donde Juanita

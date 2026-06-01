@@ -4,7 +4,8 @@ import {
   ScrollText,
   DoorOpen,
   CalendarDays,
-  ClipboardCheck,
+    ClipboardCheck,
+    History,
   Bell
 } from "lucide-react";
 
@@ -72,6 +73,14 @@ const AdminSidebar = ({ vista, setVista, mostrarInventario, setMostrarInventario
     label: 'Gestión de Productos',
     icon: <ClipboardCheck size={18} />
   }
+
+    ,
+
+    {
+        id: 'historial_pedidos',
+        label: 'Historial de Pedidos',
+        icon: <History size={18} />
+    }
 
 ];
 

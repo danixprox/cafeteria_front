@@ -38,7 +38,12 @@ const AdminCategorias = () => {
             setMostrarForm(false);
             cargarCategorias();
         } catch (err) {
-            setError(err.response?.data?.error || 'Error al guardar la categoría');
+            // Mostrar el error devuelto por la API cuando exista, de forma legible
+            const server = err.response?.data;
+            const mensaje = server
+                ? (server.error || JSON.stringify(server))
+                : (err.message || 'Error al guardar la categoría');
+            setError(mensaje);
         }
     };
 

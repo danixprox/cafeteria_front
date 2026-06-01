@@ -1,31 +1,26 @@
-const API = import.meta.env.VITE_API_URL;
+import axiosClient from './axiosClient';
 
 export const obtenerNotificaciones = async () => {
-
-    const res = await fetch(
-        `${API}/api/notificaciones/`
-    );
-
-    return await res.json();
+    const res = await axiosClient.get('/notificaciones/');
+    return res.data;
 };
 
-export const enviarNotificacion = async () => {
-
-    const res = await fetch(
-        `${API}/api/notificaciones/enviar/`,
-        {
-            method: "POST"
-        }
-    );
-
-    return await res.json();
+export const enviarNotificacion = async (payload) => {
+    const res = await axiosClient.post('/notificaciones/enviar/', payload);
+    return res.data;
 };
 
-export const obtenerMisNotificaciones = async (clienteId) => {
+export const obtenerMisNotificaciones = async () => {
+    const res = await axiosClient.get('/notificaciones/mis/');
+    return res.data;
+};
 
-    const res = await fetch(
-        `${API}/api/notificaciones/mis-notificaciones/${clienteId}/`
-    );
+export const contarNoLeidas = async () => {
+    const res = await axiosClient.get('/notificaciones/count/');
+    return res.data;
+};
 
-    return await res.json();
+export const marcarLeido = async (id) => {
+    const res = await axiosClient.post(`/notificaciones/${id}/marcar-leido/`);
+    return res.data;
 };

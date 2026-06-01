@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 
 import {
-    obtenerMisNotificaciones
+    obtenerMisNotificaciones,
+    marcarLeido,
+    contarNoLeidas
 } from "../../services/notificacionesService";
 
 const MisNotificaciones = () => {
@@ -14,7 +16,27 @@ const MisNotificaciones = () => {
 
             const data = await obtenerMisNotificaciones();
 
-            setNotificaciones(data);
+            // Formatear fecha y mantener orden
+            const parsed = data.map(n => ({
+                ...n,
+                fecha_fmt: n.fecha ? new Date(n.fecha).toLocaleString() : ''
+            }));
+
+            setNotificaciones(parsed);
+
+            // Marcar como leídas las no leídas y actualizar contador global
+            const toMark = parsed.filter(x => !x.leido).map(x => marcarLeido(x.id));
+            if (toMark.length > 0) {
+                try {
+                    await Promise.all(toMark);
+                    const cnt = await contarNoLeidas();
+                    window.dispatchEvent(new CustomEvent('notificaciones:update', { detail: { count: cnt.count || 0 } }));
+                    // actualizar estado local
+                    setNotificaciones(prev => prev.map(p => ({ ...p, leido: true })));
+                } catch (e) {
+                    console.error('Error marcando notificaciones leidas', e);
+                }
+            }
 
         } catch (error) {
 
@@ -57,7 +79,7 @@ const MisNotificaciones = () => {
 
                         <div className="bg-white rounded-2xl shadow p-6">
 
-                            <p className="text-slate-500">
+                                <p className="text-slate-500">
                                 No tienes notificaciones.
                             </p>
 
@@ -75,7 +97,7 @@ const MisNotificaciones = () => {
 
                                 <div>
 
-                                    <h2 className="text-lg font-semibold text-slate-800">
+                                    <h2 className={`text-lg ${n.leido ? 'font-normal' : 'font-semibold'} text-slate-800`}>
                                         {n.tipo}
                                     </h2>
 
@@ -84,14 +106,18 @@ const MisNotificaciones = () => {
                                     </p>
 
                                     <p className="text-slate-400 text-sm mt-3">
-                                        {n.fecha}
+                                        {n.fecha_fmt || n.fecha}
                                     </p>
 
                                 </div>
 
-                                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
-                                    Nueva
-                                </span>
+                                {!n.leido ? (
+                                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+                                        Nueva
+                                    </span>
+                                ) : (
+                                    <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-sm">Leída</span>
+                                )}
 
                             </div>
 

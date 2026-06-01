@@ -17,6 +17,7 @@ import Salas from './pages/Cliente/Salas';
 import DetalleSala from './pages/Cliente/DetalleSala';
 import MisReservas from './pages/Cliente/MisReservas';
 import MisNotificaciones from './pages/Cliente/MisNotificaciones';
+import MisPedidos from './pages/Cliente/MisPedidos';
 import ClienteLayout from './pages/Cliente/ClienteLayout';
 
 import DashboardEmpleado from './pages/Empleado/DashboardEmpleado';
@@ -133,6 +134,8 @@ function App() {
           <Route path="mis-reservas" element={<MisReservas />} />
 
           <Route path="notificaciones" element={<MisNotificaciones />} />
+
+          <Route path="mis-pedidos" element={<MisPedidos />} />
 
           <Route path="perfil" element={<ClientPage />} />
 

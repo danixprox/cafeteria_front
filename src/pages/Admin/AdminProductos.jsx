@@ -41,7 +41,12 @@ const AdminProductos = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Normalizar tipos antes de enviar
             const dataToSubmit = { ...form };
+            dataToSubmit.precio = dataToSubmit.precio ? parseFloat(dataToSubmit.precio) : 0;
+            dataToSubmit.stock = dataToSubmit.stock ? parseInt(dataToSubmit.stock, 10) : 0;
+            dataToSubmit.categoria = dataToSubmit.categoria ? parseInt(dataToSubmit.categoria, 10) : null;
+            dataToSubmit.estado = dataToSubmit.estado === 'true' || dataToSubmit.estado === true;
             if (imagenFile) {
                 dataToSubmit.imagen = imagenFile;
             }
@@ -58,7 +63,11 @@ const AdminProductos = () => {
             setMostrarForm(false);
             cargarDatos();
         } catch (err) {
-            setError(err.response?.data?.error || 'Error al guardar el producto');
+            const server = err.response?.data;
+            const mensaje = server
+                ? (server.error || JSON.stringify(server))
+                : (err.message || 'Error al guardar el producto');
+            setError(mensaje);
         }
     };
 
