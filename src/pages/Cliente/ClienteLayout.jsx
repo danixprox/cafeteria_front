@@ -88,6 +88,12 @@ const ClienteLayout = () => {
     },
 
     {
+        path: '/cliente/historial',
+        label: 'Historial de Pedidos',
+        icon: '📚'
+    },
+
+    {
         path: '/cliente/perfil',
         label: 'Mi Perfil',
         icon: '👤'

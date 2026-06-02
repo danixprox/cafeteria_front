@@ -141,7 +141,7 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
         setMesaSeleccionada(null);
       }, 2500);
     } catch (err) {
-      const msg = err.response?.data?.error || 'Error al confirmar el pedido';
+      const msg = err.response?.data?.error || err.response?.data?.detail || err.message || 'Error al confirmar el pedido';
       mostrarError(msg);
     } finally {
       setConfirmando(false);

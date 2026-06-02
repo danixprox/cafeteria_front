@@ -75,7 +75,7 @@ const GestionNotificaciones = () => {
 
         <div className="p-6">
 
-            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-8">
 
                 <div>
 
@@ -88,13 +88,6 @@ const GestionNotificaciones = () => {
                     </p>
 
                 </div>
-
-                <button
-                    onClick={handleEnviar}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition"
-                >
-                    Enviar Notificación
-                </button>
 
             </div>
 

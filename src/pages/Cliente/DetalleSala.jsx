@@ -48,6 +48,15 @@ const DetalleSala = () => {
         return fechas;
     };
 
+    const mensajeAnticipacion = 'Debes reservar con al menos 3 horas de anticipacion. Elige un horario mas tarde para asegurar la disponibilidad de la mesa.';
+
+    const horarioCumpleAnticipacion = (bloque) => {
+        if (!fecha || !bloque?.hora_inicio) return true;
+        const inicio = new Date(`${fecha}T${bloque.hora_inicio}`);
+        const limite = new Date(Date.now() + 3 * 60 * 60 * 1000);
+        return inicio > limite;
+    };
+
     const getImageUrl = (imagePath) => {
         if (!imagePath) return null;
         if (imagePath.startsWith('http')) return imagePath;
@@ -174,6 +183,10 @@ const DetalleSala = () => {
         setExito('');
         if (!fecha) { setError('Debes seleccionar una fecha para tu reserva.'); return; }
         if (!horarioSeleccionado) { setError('Debes seleccionar un horario disponible.'); return; }
+        if (horarioSeleccionado.bloqueado_por_anticipacion || !horarioCumpleAnticipacion(horarioSeleccionado)) {
+            setError(horarioSeleccionado.mensaje_bloqueo || mensajeAnticipacion);
+            return;
+        }
         if (!mesaSeleccionada) { setError('Debes seleccionar una mesa en el plano antes de continuar.'); return; }
         const mesaObjeto = mesas.find(m => m.id === mesaSeleccionada);
         if (!mesaObjeto) { setError('La mesa seleccionada no es válida.'); return; }
@@ -316,16 +329,26 @@ const DetalleSala = () => {
                                 {disponibilidad.map((bloque, idx) => {
                                     const mesasLibres = bloque.mesas?.filter(m => m.disponible)?.length || 0;
                                     const isSelected = horarioSeleccionado === bloque;
+                                    const bloqueAnticipacion = bloque.bloqueado_por_anticipacion || !horarioCumpleAnticipacion(bloque);
+                                    const puedeSeleccionarHorario = mesasLibres > 0 && !bloqueAnticipacion;
                                     return (
                                         <button
                                             key={idx}
-                                            onClick={() => { setHorarioSeleccionado(bloque); setMesaSeleccionada(null); setError(''); }}
-                                            className={`p-2 text-sm rounded-lg border transition-all duration-150 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : mesasLibres > 0 ? 'bg-white hover:bg-indigo-50 border-slate-200 text-slate-700 hover:border-indigo-300' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+                                            onClick={() => {
+                                                if (bloqueAnticipacion) {
+                                                    setError(bloque.mensaje_bloqueo || mensajeAnticipacion);
+                                                    return;
+                                                }
+                                                setHorarioSeleccionado(bloque);
+                                                setMesaSeleccionada(null);
+                                                setError('');
+                                            }}
+                                            className={`p-2 text-sm rounded-lg border transition-all duration-150 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : puedeSeleccionarHorario ? 'bg-white hover:bg-indigo-50 border-slate-200 text-slate-700 hover:border-indigo-300' : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'}`}
                                         >
                                             <div className="font-bold text-xs">{bloque.hora_inicio.substring(0, 5)}</div>
                                             <div className="font-bold text-xs">{bloque.hora_fin.substring(0, 5)}</div>
-                                            <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-indigo-200' : mesasLibres > 0 ? 'text-emerald-600' : 'text-red-400'}`}>
-                                                {mesasLibres > 0 ? `${mesasLibres} libre${mesasLibres > 1 ? 's' : ''}` : 'Sin mesas'}
+                                            <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-indigo-200' : puedeSeleccionarHorario ? 'text-emerald-600' : 'text-red-400'}`}>
+                                                {bloqueAnticipacion ? 'Min. 3 horas' : mesasLibres > 0 ? `${mesasLibres} libre${mesasLibres > 1 ? 's' : ''}` : 'Sin mesas'}
                                             </div>
                                         </button>
                                     );

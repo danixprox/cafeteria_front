@@ -13,11 +13,12 @@ const ESTADO_CFG = {
 
 const CardPedido = ({ pedido, onRecargar }) => {
   const [accionCargando, setAccionCargando] = useState(false);
-  const cfg          = ESTADO_CFG[pedido.estado] || ESTADO_CFG.confirmado;
+  const [estadoLocal, setEstadoLocal] = useState(pedido.estado);
+  const cfg          = ESTADO_CFG[estadoLocal] || ESTADO_CFG.confirmado;
   const desdePreorden = Boolean(pedido.reserva_id);
 
-  const mostrarBotonEntregado = pedido.estado === 'lista';
-  const mostrarBotonCancelar = pedido.estado === 'pendiente' || pedido.estado === 'confirmado';
+  const mostrarBotonEntregado = estadoLocal === 'lista';
+  const mostrarBotonCancelar = estadoLocal === 'pendiente' || estadoLocal === 'confirmado';
 
   return (
     <div className="rounded-3xl ring-1 ring-slate-200 bg-white flex flex-col overflow-hidden shadow-sm">
@@ -111,15 +112,25 @@ const CardPedido = ({ pedido, onRecargar }) => {
                 onClick={async () => {
                   setAccionCargando(true);
                   try {
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                      alert('No autenticado. Inicia sesión.');
+                      return;
+                    }
                     await pedidosService.marcarEntregado(pedido.id);
+                    // actualizar estado localmente para feedback inmediato
+                    setEstadoLocal('entregada');
+                    // intentar recargar la lista superior
                     onRecargar?.();
+                  } catch (err) {
+                    const msg = err.response?.data?.error || err.message || 'Error al marcar entregado';
+                    alert(msg);
                   } finally {
                     setAccionCargando(false);
                   }
                 }}
-                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
-              >
-                Marcar entregado
+                className={`rounded-xl px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50 ${estadoLocal==='entregada' ? 'bg-emerald-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+                {estadoLocal==='entregada' ? 'Entregado' : 'Marcar entregado'}
               </button>
             )}
 
