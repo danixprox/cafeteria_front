@@ -19,10 +19,15 @@ const MisReservas = () => {
     };
 
     useEffect(() => {
-        cargarReservas();
+        const cargaInicial = setTimeout(cargarReservas, 0);
+        const intervalo = setInterval(cargarReservas, 30000);
+        return () => {
+            clearTimeout(cargaInicial);
+            clearInterval(intervalo);
+        };
     }, []);
 
-    const handleCancelar = async (id, reserva) => {
+    const handleCancelar = async (id) => {
         if (window.confirm('¿Estás seguro de cancelar esta reserva?')) {
             try {
                 await reservasService.cancelar(id);
@@ -48,8 +53,11 @@ const MisReservas = () => {
         return c;
     };
 
-    const puedeSerCancelada = (estado) => {
-        return ['pendiente', 'confirmada'].includes(estado);
+    const puedeSerCancelada = (reserva) => {
+        return (
+            ['pendiente', 'confirmada'].includes(reserva.estado)
+            && reserva.puede_cancelar_cliente !== false
+        );
     };
 
     const formatearFecha = (fecha) => {
@@ -143,11 +151,6 @@ const MisReservas = () => {
         r => !['cancelada', 'finalizada', 'no_asistio'].includes(r.estado)
     );
 
-    const historial = reservas.filter(
-        r => ['cancelada', 'finalizada', 'no_asistio'].includes(r.estado)
-    );
-
-
     return (
         <div className="p-4 md:p-8 max-w-6xl mx-auto min-h-screen bg-slate-50">
             <div className="mb-8">
@@ -169,7 +172,7 @@ const MisReservas = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {activas.map(reserva => {
                         const badge = getEstadoBadge(reserva.estado);
-                        const puedeCancel = puedeSerCancelada(reserva.estado);
+                        const puedeCancel = puedeSerCancelada(reserva);
 
                         return (
                             <div key={reserva.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition">
@@ -218,7 +221,7 @@ const MisReservas = () => {
 
                                         {puedeCancel && (
                                             <button
-                                                onClick={() => handleCancelar(reserva.id, reserva)}
+                                                onClick={() => handleCancelar(reserva.id)}
                                                 className="w-full text-red-600 hover:bg-red-50 py-3 rounded-lg border-2 border-red-200 transition font-bold hover:border-red-300 flex items-center justify-center gap-2"
                                             >
                                                 <span>✗</span> Cancelar Reserva
@@ -227,7 +230,7 @@ const MisReservas = () => {
                                     </div>
                                     {!puedeCancel && (
                                         <div className="text-center py-3 text-slate-500 font-semibold text-sm">
-                                            No se puede cancelar en este estado
+                                            {reserva.mensaje_cancelacion || 'No se puede cancelar en este estado'}
                                         </div>
                                     )}
                                 </div>

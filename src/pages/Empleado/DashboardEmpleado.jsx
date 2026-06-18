@@ -18,7 +18,12 @@ const DashboardEmpleado = () => {
     };
 
     useEffect(() => {
-        cargarReservas();
+        const cargaInicial = setTimeout(cargarReservas, 0);
+        const intervalo = setInterval(cargarReservas, 30000);
+        return () => {
+            clearTimeout(cargaInicial);
+            clearInterval(intervalo);
+        };
     }, []);
 
     const cambiarEstado = async (id, accion) => {
@@ -36,7 +41,12 @@ const DashboardEmpleado = () => {
             case 'confirmada':
                 return (
                     <div className="space-x-2">
-                        <button onClick={() => cambiarEstado(reserva.id, 'confirmarLlegada')} className="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700">
+                        <button
+                            onClick={() => cambiarEstado(reserva.id, 'confirmarLlegada')}
+                            disabled={!reserva.puede_hacer_checkin}
+                            title={reserva.mensaje_checkin || ''}
+                            className="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
                             Confirmar Llegada
                         </button>
                         <button onClick={() => cambiarEstado(reserva.id, 'noAsistio')} className="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-red-700">
