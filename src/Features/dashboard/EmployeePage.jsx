@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { obtenerEmpleados, obtenerClientes } from '../../services/api';
+import { finanzasService } from '../../services/finanzasService';
 import GestionReservas from "../../pages/Admin/GestionReservas";
 import EmployeeSidebar from "./EmployeeSidebar";
 import PanelPedidosEmpleado from '../../pages/Empleado/PanelPedidosEmpleado';
@@ -8,12 +9,15 @@ import PedidosPage from '../../pages/Empleado/PedidosPage';
 
 const EmployeePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [empleados, setEmpleados] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [clientesOriginal, setClientesOriginal] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [vista, setVista] = useState("perfil");
+  const [paginaClientes, setPaginaClientes] = useState(1);
+  const [toast, setToast] = useState(null); // { tipo: 'exito'|'error', mensaje: string }
 
   const [usuario] = useState(() => {
     const u = localStorage.getItem('usuario');
@@ -37,6 +41,36 @@ const EmployeePage = () => {
     navigate('/login');
   };
 
+  // Manejar retorno de Stripe (pago_success o pago_cancel)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const pagoSuccess = params.get('pago_success');
+    const pagoCancel = params.get('pago_cancel');
+    const sessionId = params.get('session_id');
+    const pedidoId = params.get('pedido_id');
+
+    if (pagoSuccess && sessionId) {
+      finanzasService.confirmarPagoStripe(sessionId)
+        .then(() => {
+          setToast({ tipo: 'exito', mensaje: '✓ Pago con Stripe confirmado correctamente. El pedido fue registrado.' });
+        })
+        .catch((err) => {
+          const msg = err.response?.data?.error || 'Error al confirmar el pago de Stripe';
+          setToast({ tipo: 'error', mensaje: msg });
+        })
+        .finally(() => {
+          // Limpiar query params de la URL sin recargar
+          navigate('/empleado', { replace: true });
+          setTimeout(() => setToast(null), 5000);
+        });
+    } else if (pagoCancel) {
+      setToast({ tipo: 'error', mensaje: `Pago cancelado. El pedido #${pedidoId || ''} fue revertido.` });
+      navigate('/empleado', { replace: true });
+      setTimeout(() => setToast(null), 5000);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const cargar = async () => {
       try {
@@ -54,6 +88,7 @@ const EmployeePage = () => {
   }, []);
 
   const buscarCliente = (texto) => {
+    setPaginaClientes(1);
     const t = texto.toLowerCase();
     if (!t) {
       setClientes(clientesOriginal);
@@ -68,9 +103,27 @@ const EmployeePage = () => {
   if (loading) return <div className="p-6">Cargando...</div>;
   if (error) return <div className="p-6 text-red-500">{error}</div>;
 
+  const itemsPorPagina = 5;
+  const totalPaginas = Math.ceil(clientes.length / itemsPorPagina);
+  const clientesPaginados = clientes.slice(
+    (paginaClientes - 1) * itemsPorPagina,
+    paginaClientes * itemsPorPagina
+  );
+
   return (
 
   <div className="min-h-screen flex flex-col bg-slate-50 relative">
+
+    {/* Toast de notificación de pago Stripe */}
+    {toast && (
+      <div className={`fixed top-6 right-6 z-[100] max-w-sm rounded-2xl px-5 py-4 shadow-xl text-sm font-semibold transition-all
+        ${toast.tipo === 'exito'
+          ? 'bg-emerald-600 text-white'
+          : 'bg-red-600 text-white'
+        }`}>
+        {toast.mensaje}
+      </div>
+    )}
 
     <EmployeeSidebar
       vista={vista}
@@ -204,21 +257,21 @@ const EmployeePage = () => {
                   onChange={(e) => buscarCliente(e.target.value)}
                 />
 
-                <div className="mt-6 grid gap-4">
+                <div className="mt-6 grid gap-4 max-h-[380px] overflow-y-auto pr-2">
 
                   {clientes.length === 0 ? (
 
-                    <p className="text-slate-500">
-                      No hay clientes
+                    <p className="text-slate-500 text-center py-4 font-semibold">
+                      No se encontraron clientes
                     </p>
 
                   ) : (
 
-                    clientes.map((c) => (
+                    clientesPaginados.map((c) => (
 
                       <div
                         key={c.cod_cliente}
-                        className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+                        className="rounded-3xl border border-slate-200 bg-slate-50 p-5 hover:border-amber-200 transition"
                       >
 
                         <p className="text-lg font-semibold text-slate-900">
@@ -240,6 +293,30 @@ const EmployeePage = () => {
                   )}
 
                 </div>
+
+                {totalPaginas > 1 && (
+                  <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
+                    <button
+                      type="button"
+                      disabled={paginaClientes === 1}
+                      onClick={() => setPaginaClientes((prev) => Math.max(prev - 1, 1))}
+                      className="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Anterior
+                    </button>
+                    <span className="text-xs text-slate-500 font-medium">
+                      Página {paginaClientes} de {totalPaginas}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={paginaClientes === totalPaginas}
+                      onClick={() => setPaginaClientes((prev) => Math.min(prev + 1, totalPaginas))}
+                      className="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                )}
 
               </section>
 
