@@ -14,5 +14,10 @@ export const finanzasService = {
     agregarDetalle: (pedidoId, data) => api.post(`/pedidos/${pedidoId}/detalles/`, data),
     actualizarDetalle: (pedidoId, detalleId, data) => api.patch(`/pedidos/${pedidoId}/detalles/${detalleId}/`, data),
     eliminarDetalle: (pedidoId, detalleId) => api.delete(`/pedidos/${pedidoId}/detalles/${detalleId}/`),
-    actualizarMesaEstado: (mesaId, estado) => api.patch(`/mesas/${mesaId}/estado/`, { estado })
+    actualizarMesaEstado: (mesaId, estado) => api.patch(`/mesas/${mesaId}/estado/`, { estado }),
+    
+    // Split confirm and pay flow
+    confirmarPedido: (pedidoId) => api.post(`/pedidos/${pedidoId}/confirmar/`),
+    getResumenPago: (pedidoId) => api.get(`/pedidos/${pedidoId}/resumen-pago/`),
+    pagarEfectivo: (pedidoId) => api.post(`/pedidos/${pedidoId}/pagar-efectivo/`)
 };

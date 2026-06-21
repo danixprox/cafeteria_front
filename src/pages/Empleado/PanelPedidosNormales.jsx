@@ -23,6 +23,7 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
   const [confirmando, setConfirmando] = useState(false);
   const [mostrarModalPago, setMostrarModalPago] = useState(false);
   const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState(null);
+  const [confirmarEfectivoModal, setConfirmarEfectivoModal] = useState(false);
   const [pagoInfo, setPagoInfo] = useState(null);
   const [procesandoAccionPago, setProcesandoAccionPago] = useState(false);
 
@@ -55,7 +56,8 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
             stock: 9999
           },
           cantidad: det.cantidad,
-          detalleId: det.id
+          detalleId: det.id,
+          confirmado: det.confirmado
         };
       });
     }
@@ -191,16 +193,47 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
     }
   };
 
-  const handleConfirmarPedido = () => {
-    const items = Object.values(carrito);
-    if (items.length === 0) {
-      mostrarError('Agrega al menos un producto antes de confirmar');
-      return;
-    }
-    setMostrarModalPago(true);
-    setMetodoPagoSeleccionado(null);
-    setPagoInfo(null);
+  const handleConfirmarPedido = async () => {
+    if (!pedidoActivo) return;
+    setProcesandoAccionPago(true);
     setError('');
+    try {
+      const res = await finanzasService.confirmarPedido(pedidoActivo.id);
+      actualizarCarritoDesdePedido(res.data);
+      setExito('Pedido confirmado correctamente');
+      setTimeout(() => setExito(''), 3000);
+
+      // Refrescar listado de mesas
+      const mesasRes = await salasService.getMesas(salaSeleccionada.id);
+      setMesas(Array.isArray(mesasRes.data) ? mesasRes.data : []);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al confirmar el pedido';
+      mostrarError(msg);
+    } finally {
+      setProcesandoAccionPago(false);
+    }
+  };
+
+  const handlePagarPedido = async () => {
+    if (!pedidoActivo) return;
+    setProcesandoAccionPago(true);
+    setError('');
+    try {
+      const res = await finanzasService.getResumenPago(pedidoActivo.id);
+      if (res.data.puede_pagar) {
+        setMostrarModalPago(true);
+        setMetodoPagoSeleccionado(null);
+        setPagoInfo(null);
+        setConfirmarEfectivoModal(false);
+      } else {
+        mostrarError(res.data.motivo_bloqueo_pago || 'No se puede realizar el pago en este momento');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al obtener el resumen de pago';
+      mostrarError(msg);
+    } finally {
+      setProcesandoAccionPago(false);
+    }
   };
 
   const handleElegirStripe = async () => {
@@ -280,10 +313,51 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
     }
   };
 
+  const handleElegirEfectivo = () => {
+    setMetodoPagoSeleccionado('efectivo');
+    setConfirmarEfectivoModal(true);
+  };
+
+  const handleConfirmarPagoEfectivo = async () => {
+    if (!pedidoActivo) return;
+    setProcesandoAccionPago(true);
+    setError('');
+    try {
+      const res = await finanzasService.pagarEfectivo(pedidoActivo.id);
+      setExito(res.data.message || 'Pago en efectivo registrado correctamente');
+      setCarrito({});
+      setPedidoActivo(null);
+      setMostrarModalPago(false);
+      setPagoInfo(null);
+      setMetodoPagoSeleccionado(null);
+      setConfirmarEfectivoModal(false);
+      onPedidoCreado?.();
+
+      const [mesasRes, prodRes] = await Promise.all([
+        salasService.getMesas(salaSeleccionada.id),
+        productosService.getDisponibles(),
+      ]);
+      setMesas(Array.isArray(mesasRes.data) ? mesasRes.data : []);
+      setProductos(Array.isArray(prodRes.data) ? prodRes.data : []);
+
+      setTimeout(() => {
+        setExito('');
+        setPaso('mesas');
+        setMesaSeleccionada(null);
+      }, 2500);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al registrar el pago en efectivo';
+      mostrarError(msg);
+    } finally {
+      setProcesandoAccionPago(false);
+    }
+  };
+
   const handleCancelarPago = () => {
     setMostrarModalPago(false);
     setPagoInfo(null);
     setMetodoPagoSeleccionado(null);
+    setConfirmarEfectivoModal(false);
   };
 
   const volverASalas = () => {
@@ -380,9 +454,12 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
               onActualizarCantidad={handleActualizarCantidad}
               onEliminar={handleEliminarDelCarrito}
               onConfirmar={handleConfirmarPedido}
-              confirmando={confirmando}
+              confirmando={procesandoAccionPago}
               mesa={mesaSeleccionada}
               sala={salaSeleccionada}
+              pedidoActivo={pedidoActivo}
+              onPagar={handlePagarPedido}
+              pagando={procesandoAccionPago}
             />
           </div>
         )
@@ -402,9 +479,9 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
                   Mesa: <strong>{mesaSeleccionada?.nombre}</strong> · Sala: <strong>{salaSeleccionada?.nombre}</strong>
                 </p>
                 <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-200/60 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-slate-500">Total del Pedido</span>
+                  <span className="text-sm font-semibold text-slate-500">Monto Pendiente</span>
                   <span className="text-2xl font-black text-slate-900">
-                    Bs. {Object.values(carrito).reduce((sum, item) => sum + parseFloat(item.producto.precio) * item.cantidad, 0).toFixed(2)}
+                    Bs. {pedidoActivo ? parseFloat(pedidoActivo.total_pendiente).toFixed(2) : '0.00'}
                   </span>
                 </div>
 
@@ -428,6 +505,14 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
                   <button
                     type="button"
                     disabled={procesandoAccionPago}
+                    onClick={handleElegirEfectivo}
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-amber-200 text-sm flex items-center justify-center gap-2"
+                  >
+                    💵 Pagar en efectivo
+                  </button>
+                  <button
+                    type="button"
+                    disabled={procesandoAccionPago}
                     onClick={handleCancelarPago}
                     className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3.5 rounded-xl transition text-sm"
                   >
@@ -437,6 +522,36 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
               </>
             )}
 
+            {/* Vista de Pago en Efectivo */}
+            {metodoPagoSeleccionado === 'efectivo' && confirmarEfectivoModal && (
+              <div className="text-center">
+                <p className="text-sm text-slate-500 mb-6">
+                  ¿Confirma que recibió <strong className="text-slate-800">Bs. {pedidoActivo ? parseFloat(pedidoActivo.total_pendiente).toFixed(2) : '0.00'}</strong> en efectivo?
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="button"
+                    disabled={procesandoAccionPago}
+                    onClick={handleConfirmarPagoEfectivo}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition text-sm"
+                  >
+                    {procesandoAccionPago ? 'Procesando...' : '✓ Sí, confirmar pago'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={procesandoAccionPago}
+                    onClick={() => {
+                      setMetodoPagoSeleccionado(null);
+                      setConfirmarEfectivoModal(false);
+                    }}
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3.5 rounded-xl transition text-sm"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Si se eligió QR */}
             {metodoPagoSeleccionado === 'qr' && pagoInfo && (
               <div className="text-center">
@@ -444,7 +559,7 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
                   Muestra el código QR al cliente para realizar el pago de:
                 </p>
                 <p className="text-2xl font-black text-emerald-600 mb-6">
-                  Bs. {pagoInfo.total.toFixed(2)}
+                  Bs. {parseFloat(pagoInfo.total).toFixed(2)}
                 </p>
                 <div className="mx-auto w-64 h-64 bg-slate-100 border border-slate-200 rounded-3xl p-3 flex items-center justify-center shadow-inner mb-6">
                   <img src={pagoInfo.qr_url} alt="Código QR de Pago" className="w-full h-full object-contain rounded-2xl" />

@@ -21,6 +21,7 @@ const PanelPedidosEmpleado = () => {
   const [exito, setExito] = useState('');
   const [mostrarModalPago, setMostrarModalPago] = useState(false);
   const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState(null);
+  const [confirmarEfectivoModal, setConfirmarEfectivoModal] = useState(false);
   const [pagoInfo, setPagoInfo] = useState(null);
   const [procesandoAccionPago, setProcesandoAccionPago] = useState(false);
 
@@ -54,7 +55,8 @@ const PanelPedidosEmpleado = () => {
             stock: 9999
           },
           cantidad: det.cantidad,
-          detalleId: det.id
+          detalleId: det.id,
+          confirmado: det.confirmado
         };
       });
     }
@@ -195,17 +197,49 @@ const PanelPedidosEmpleado = () => {
     }
   };
 
-  // Abre el modal de pasarela de pago
-  const handleConfirmarPedido = () => {
-    const items = Object.values(carrito);
-    if (items.length === 0) {
-      mostrarError('Agrega al menos un producto antes de confirmar');
-      return;
-    }
-    setMostrarModalPago(true);
-    setMetodoPagoSeleccionado(null);
-    setPagoInfo(null);
+  // Confirma el pedido (solo guarda los productos pendientes)
+  const handleConfirmarPedido = async () => {
+    if (!pedidoActivo) return;
+    setProcesandoAccionPago(true);
     setError('');
+    try {
+      const res = await finanzasService.confirmarPedido(pedidoActivo.id);
+      actualizarCarritoDesdePedido(res.data);
+      setExito('Pedido confirmado correctamente');
+      setTimeout(() => setExito(''), 3000);
+
+      // Refrescar listado de mesas
+      const mesasRes = await salasService.getMesas(salaSeleccionada.id);
+      setMesas(Array.isArray(mesasRes.data) ? mesasRes.data : []);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al confirmar el pedido';
+      mostrarError(msg);
+    } finally {
+      setProcesandoAccionPago(false);
+    }
+  };
+
+  // Consulta resumen de pago y abre pasarela
+  const handlePagarPedido = async () => {
+    if (!pedidoActivo) return;
+    setProcesandoAccionPago(true);
+    setError('');
+    try {
+      const res = await finanzasService.getResumenPago(pedidoActivo.id);
+      if (res.data.puede_pagar) {
+        setMostrarModalPago(true);
+        setMetodoPagoSeleccionado(null);
+        setPagoInfo(null);
+        setConfirmarEfectivoModal(false);
+      } else {
+        mostrarError(res.data.motivo_bloqueo_pago || 'No se puede realizar el pago en este momento');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al obtener el resumen de pago';
+      mostrarError(msg);
+    } finally {
+      setProcesandoAccionPago(false);
+    }
   };
 
   // Pago con Stripe
@@ -287,11 +321,53 @@ const PanelPedidosEmpleado = () => {
     }
   };
 
+  // Pagar en efectivo
+  const handleElegirEfectivo = () => {
+    setMetodoPagoSeleccionado('efectivo');
+    setConfirmarEfectivoModal(true);
+  };
+
+  // Confirmar pago en efectivo
+  const handleConfirmarPagoEfectivo = async () => {
+    if (!pedidoActivo) return;
+    setProcesandoAccionPago(true);
+    setError('');
+    try {
+      const res = await finanzasService.pagarEfectivo(pedidoActivo.id);
+      setExito(res.data.message || 'Pago en efectivo registrado correctamente');
+      setCarrito({});
+      setPedidoActivo(null);
+      setMostrarModalPago(false);
+      setPagoInfo(null);
+      setMetodoPagoSeleccionado(null);
+      setConfirmarEfectivoModal(false);
+
+      const [mesasRes, prodRes] = await Promise.all([
+        salasService.getMesas(salaSeleccionada.id),
+        productosService.getDisponibles(),
+      ]);
+      setMesas(Array.isArray(mesasRes.data) ? mesasRes.data : []);
+      setProductos(Array.isArray(prodRes.data) ? prodRes.data : []);
+
+      setTimeout(() => {
+        setExito('');
+        setPaso('mesas');
+        setMesaSeleccionada(null);
+      }, 2500);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al registrar el pago en efectivo';
+      mostrarError(msg);
+    } finally {
+      setProcesandoAccionPago(false);
+    }
+  };
+
   // Cancelar el modal sin destruir el pedido activo
   const handleCancelarPago = () => {
     setMostrarModalPago(false);
     setPagoInfo(null);
     setMetodoPagoSeleccionado(null);
+    setConfirmarEfectivoModal(false);
   };
 
   const volverASalas = () => {
@@ -402,6 +478,9 @@ const PanelPedidosEmpleado = () => {
               confirmando={procesandoAccionPago}
               mesa={mesaSeleccionada}
               sala={salaSeleccionada}
+              pedidoActivo={pedidoActivo}
+              onPagar={handlePagarPedido}
+              pagando={procesandoAccionPago}
             />
           </div>
         )
@@ -422,9 +501,9 @@ const PanelPedidosEmpleado = () => {
                   Mesa: <strong>{mesaSeleccionada?.nombre}</strong> · Sala: <strong>{salaSeleccionada?.nombre}</strong>
                 </p>
                 <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-200/60 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-slate-500">Total del Pedido</span>
+                  <span className="text-sm font-semibold text-slate-500">Monto Pendiente</span>
                   <span className="text-2xl font-black text-slate-900">
-                    Bs. {Object.values(carrito).reduce((sum, item) => sum + parseFloat(item.producto.precio) * item.cantidad, 0).toFixed(2)}
+                    Bs. {pedidoActivo ? parseFloat(pedidoActivo.total_pendiente).toFixed(2) : '0.00'}
                   </span>
                 </div>
 
@@ -448,6 +527,14 @@ const PanelPedidosEmpleado = () => {
                   <button
                     type="button"
                     disabled={procesandoAccionPago}
+                    onClick={handleElegirEfectivo}
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-amber-200 text-sm flex items-center justify-center gap-2"
+                  >
+                    💵 Pagar en efectivo
+                  </button>
+                  <button
+                    type="button"
+                    disabled={procesandoAccionPago}
                     onClick={handleCancelarPago}
                     className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3.5 rounded-xl transition text-sm"
                   >
@@ -455,6 +542,36 @@ const PanelPedidosEmpleado = () => {
                   </button>
                 </div>
               </>
+            )}
+
+            {/* Vista de Pago en Efectivo */}
+            {metodoPagoSeleccionado === 'efectivo' && confirmarEfectivoModal && (
+              <div className="text-center">
+                <p className="text-sm text-slate-500 mb-6">
+                  ¿Confirma que recibió <strong className="text-slate-800">Bs. {pedidoActivo ? parseFloat(pedidoActivo.total_pendiente).toFixed(2) : '0.00'}</strong> en efectivo?
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="button"
+                    disabled={procesandoAccionPago}
+                    onClick={handleConfirmarPagoEfectivo}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition text-sm"
+                  >
+                    {procesandoAccionPago ? 'Procesando...' : '✓ Sí, confirmar pago'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={procesandoAccionPago}
+                    onClick={() => {
+                      setMetodoPagoSeleccionado(null);
+                      setConfirmarEfectivoModal(false);
+                    }}
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3.5 rounded-xl transition text-sm"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* Vista del QR para que el cliente escanee */}
