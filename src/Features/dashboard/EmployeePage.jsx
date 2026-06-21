@@ -64,7 +64,7 @@ const EmployeePage = () => {
           setTimeout(() => setToast(null), 5000);
         });
     } else if (pagoCancel) {
-      setToast({ tipo: 'error', mensaje: `Pago cancelado. El pedido #${pedidoId || ''} fue revertido.` });
+      setToast({ tipo: 'error', mensaje: `Pago cancelado. El pedido #${pedidoId || ''} sigue activo y pendiente de pago.` });
       navigate('/empleado', { replace: true });
       setTimeout(() => setToast(null), 5000);
     }
