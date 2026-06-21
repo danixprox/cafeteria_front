@@ -211,7 +211,8 @@ const DetalleSala = () => {
                 hora_inicio: horarioSeleccionado.hora_inicio,
                 hora_fin: horarioSeleccionado.hora_fin,
                 cantidad_personas: parseInt(cantidadPersonas),
-                productos: carrito.map(c => ({ id: c.id, cantidad: c.cantidad }))
+                productos: carrito.map(c => ({ id: c.id, cantidad: c.cantidad })),
+                frontend_origin: window.location.origin
             });
             setExito('🎉 ¡Reserva iniciada! Redirigiendo al pago de Stripe...');
             if (res.data?.url) {

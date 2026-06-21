@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reservasService } from '../../services/reservasService';
 import { finanzasService } from '../../services/finanzasService';
+import NotaVentaClienteModal from './NotaVentaClienteModal';
 
 const MisReservas = () => {
     const [reservas, setReservas] = useState([]);
@@ -11,6 +12,7 @@ const MisReservas = () => {
     const [procesandoPago, setProcesandoPago] = useState(false);
     const [mensajePago, setMensajePago] = useState('');
     const [tipoMensaje, setTipoMensaje] = useState('');
+    const [notaVenta, setNotaVenta] = useState(null);
 
     const cargarReservas = () => {
         setLoading(true);
@@ -35,9 +37,15 @@ const MisReservas = () => {
             setTipoMensaje('');
 
             finanzasService.confirmarPagoStripe(sessionId)
-                .then(() => {
+                .then((res) => {
                     setTipoMensaje('exito');
                     setMensajePago('¡Pago confirmado con éxito! Tu reserva ha sido confirmada.');
+                    if (res.data?.nota_venta) {
+                        setNotaVenta({
+                            ...res.data.nota_venta,
+                            metodoPago: 'STRIPE',
+                        });
+                    }
                     cargarReservas();
                     setTimeout(() => {
                         setProcesandoPago(false);
@@ -304,6 +312,11 @@ const MisReservas = () => {
                     </div>
                 </div>
             )}
+
+            <NotaVentaClienteModal
+                nota={notaVenta}
+                onClose={() => setNotaVenta(null)}
+            />
         </div>
     );
 };

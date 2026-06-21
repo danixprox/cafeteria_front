@@ -6,6 +6,7 @@ import GestionReservas from "../../pages/Admin/GestionReservas";
 import EmployeeSidebar from "./EmployeeSidebar";
 import PanelPedidosEmpleado from '../../pages/Empleado/PanelPedidosEmpleado';
 import PedidosPage from '../../pages/Empleado/PedidosPage';
+import NotaVentaModal from '../../pages/Empleado/NotaVentaModal';
 
 const EmployeePage = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const EmployeePage = () => {
   const [vista, setVista] = useState("perfil");
   const [paginaClientes, setPaginaClientes] = useState(1);
   const [toast, setToast] = useState(null); // { tipo: 'exito'|'error', mensaje: string }
+  const [notaVenta, setNotaVenta] = useState(null);
 
   const [usuario] = useState(() => {
     const u = localStorage.getItem('usuario');
@@ -51,7 +53,10 @@ const EmployeePage = () => {
 
     if (pagoSuccess && sessionId) {
       finanzasService.confirmarPagoStripe(sessionId)
-        .then(() => {
+        .then((res) => {
+          if (res.data?.nota_venta) {
+            setNotaVenta(res.data.nota_venta);
+          }
           setToast({ tipo: 'exito', mensaje: '✓ Pago con Stripe confirmado correctamente. El pedido fue registrado.' });
         })
         .catch((err) => {
@@ -124,6 +129,8 @@ const EmployeePage = () => {
         {toast.mensaje}
       </div>
     )}
+
+    <NotaVentaModal nota={notaVenta} onClose={() => setNotaVenta(null)} />
 
     <EmployeeSidebar
       vista={vista}
