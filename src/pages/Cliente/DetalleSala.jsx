@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { salasService } from '../../services/salasService';
 import { reservasService } from '../../services/reservasService';
 import { productosService } from '../../services/productosService';
+import { finanzasService } from '../../services/finanzasService';
 import MapaMesas from '../../components/MapaMesas';
 
 const DetalleSala = () => {
@@ -21,6 +22,25 @@ const DetalleSala = () => {
     const [productos, setProductos] = useState([]);
     const [carrito, setCarrito] = useState([]);
     const [categorias, setCategorias] = useState([]);
+    const [mostrarModalPago, setMostrarModalPago] = useState(false);
+
+    // ── Escuchar pago cancelado en el retorno de Stripe ──
+    useEffect(() => {
+        const query = new URLSearchParams(window.location.search);
+        const pagoCancel = query.get('pago_cancel');
+        const resId = query.get('reserva_id');
+        if (pagoCancel === 'true' && resId) {
+            finanzasService.cancelarPagoReserva(resId)
+                .then(() => {
+                    setError('Reserva con preorden cancelada. ¿Deseas volver a hacer otra reserva?');
+                })
+                .catch(err => {
+                    console.error('Error al liberar la reserva cancelada:', err);
+                });
+            // Limpiar query params de la URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, []);
 
     const [loading, setLoading] = useState(true);
     const [loadingDisponibilidad, setLoadingDisponibilidad] = useState(false);
@@ -177,7 +197,41 @@ const DetalleSala = () => {
 
     const totalCarrito = carrito.reduce((acc, item) => acc + item.subtotal, 0);
 
-    // ── Confirmar reserva (lógica sin cambios) ─────────────────────────────────
+    // ── Confirmar reserva (con validación de preorden y pago) ───────────────────
+    const handleProcederAlPago = async () => {
+        setMostrarModalPago(false);
+        setReservando(true);
+        setError('');
+        setExito('');
+        try {
+            const res = await finanzasService.crearSesionReserva({
+                sala: id,
+                mesa: mesaSeleccionada,
+                fecha: fecha,
+                hora_inicio: horarioSeleccionado.hora_inicio,
+                hora_fin: horarioSeleccionado.hora_fin,
+                cantidad_personas: parseInt(cantidadPersonas),
+                productos: carrito.map(c => ({ id: c.id, cantidad: c.cantidad }))
+            });
+            setExito('🎉 ¡Reserva iniciada! Redirigiendo al pago de Stripe...');
+            if (res.data?.url) {
+                window.location.href = res.data.url;
+            } else {
+                throw new Error("No se recibió la URL de Stripe.");
+            }
+        } catch (err) {
+            setError(err.response?.data?.error || err.message || 'Error al iniciar el flujo de pago con Stripe.');
+            setReservando(false);
+        }
+    };
+
+    const handleCancelarPreorden = () => {
+        setMostrarModalPago(false);
+        setDeseaPedido(false);
+        setCarrito([]);
+        setError('Reserva con preorden cancelada. ¿Deseas volver a hacer otra reserva?');
+    };
+
     const handleReservar = async () => {
         setError('');
         setExito('');
@@ -195,23 +249,35 @@ const DetalleSala = () => {
             return;
         }
         if (parseInt(cantidadPersonas) < 1) { setError('La cantidad de personas debe ser al menos 1.'); return; }
-        setReservando(true);
-        try {
-            await reservasService.create({
-                sala: id,
-                mesa: mesaSeleccionada,
-                fecha: fecha,
-                hora_inicio: horarioSeleccionado.hora_inicio,
-                hora_fin: horarioSeleccionado.hora_fin,
-                cantidad_personas: parseInt(cantidadPersonas),
-                productos: deseaPedido ? carrito.map(c => ({ id: c.id, cantidad: c.cantidad })) : []
-            });
-            setExito('🎉 ¡Reserva confirmada con éxito! Redirigiendo a tus reservas...');
-            setTimeout(() => navigate('/cliente/mis-reservas'), 2000);
-        } catch (err) {
-            setError(err.response?.data?.error || 'Ocurrió un error al realizar la reserva. Intenta de nuevo.');
-        } finally {
-            setReservando(false);
+
+        if (deseaPedido && carrito.length === 0) {
+            setError('Debes agregar al menos un producto al pedido/preorden si seleccionaste la opción de agregar pedido.');
+            return;
+        }
+
+        if (deseaPedido) {
+            // Mostrar modal de confirmación antes de pagar con Stripe
+            setMostrarModalPago(true);
+        } else {
+            // Reserva normal sin preorden (pago presencial / confirmación inmediata)
+            setReservando(true);
+            try {
+                await reservasService.create({
+                    sala: id,
+                    mesa: mesaSeleccionada,
+                    fecha: fecha,
+                    hora_inicio: horarioSeleccionado.hora_inicio,
+                    hora_fin: horarioSeleccionado.hora_fin,
+                    cantidad_personas: parseInt(cantidadPersonas),
+                    productos: []
+                });
+                setExito('🎉 ¡Reserva confirmada con éxito! Redirigiendo a tus reservas...');
+                setTimeout(() => navigate('/cliente/mis-reservas'), 2000);
+            } catch (err) {
+                setError(err.response?.data?.error || 'Ocurrió un error al realizar la reserva. Intenta de nuevo.');
+            } finally {
+                setReservando(false);
+            }
         }
     };
 
@@ -438,9 +504,9 @@ const DetalleSala = () => {
 
                         <button
                             onClick={handleReservar}
-                            disabled={!mesaSeleccionada || !horarioSeleccionado || !puedeReservar || reservando}
+                            disabled={!mesaSeleccionada || !horarioSeleccionado || !puedeReservar || reservando || (deseaPedido && carrito.length === 0)}
                             className={`w-full mt-4 py-3 rounded-xl font-bold transition shadow-sm text-sm flex items-center justify-center gap-2 ${
-                                !puedeReservar
+                                !puedeReservar || (deseaPedido && carrito.length === 0)
                                     ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                                     : mesaSeleccionada && horarioSeleccionado
                                         ? 'bg-indigo-600 text-white hover:bg-indigo-700'
@@ -455,11 +521,54 @@ const DetalleSala = () => {
                                         ? 'Selecciona un horario'
                                         : !mesaSeleccionada
                                             ? 'Selecciona una mesa'
-                                            : deseaPedido && carrito.length > 0
+                                            : deseaPedido
                                                 ? '✓ Confirmar Reserva con Pedido'
                                                 : '✓ Confirmar Reserva'
                             }
                         </button>
+
+                        {/* ── Modal de Confirmación de Preorden (Stripe) ── */}
+                        {mostrarModalPago && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                                <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl border border-slate-100 animate-in zoom-in duration-200">
+                                    <div className="text-center mb-6">
+                                        <div className="mx-auto w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-3xl mb-4">
+                                            🛒
+                                        </div>
+                                        <h3 className="text-xl font-black text-slate-900">
+                                            Confirmación de Reserva
+                                        </h3>
+                                        <p className="text-sm text-slate-500 mt-2">
+                                            Tu reserva incluye una preorden de productos por un total de:
+                                        </p>
+                                        <p className="text-2xl font-black text-indigo-600 mt-2">
+                                            Bs. {totalCarrito.toFixed(2)}
+                                        </p>
+                                    </div>
+                                    
+                                    <p className="text-xs text-slate-500 text-center mb-6">
+                                        ¿Deseas proceder al pago seguro con Stripe ahora mismo?
+                                    </p>
+
+                                    <div className="flex flex-col gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={handleProcederAlPago}
+                                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-indigo-200 text-sm"
+                                        >
+                                            Sí, pagar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleCancelarPreorden}
+                                            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3.5 rounded-xl transition text-sm"
+                                        >
+                                            No, cancelar preorden
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

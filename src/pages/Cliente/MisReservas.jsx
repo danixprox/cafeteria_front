@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reservasService } from '../../services/reservasService';
+import { finanzasService } from '../../services/finanzasService';
 
 const MisReservas = () => {
     const [reservas, setReservas] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+
+    const [procesandoPago, setProcesandoPago] = useState(false);
+    const [mensajePago, setMensajePago] = useState('');
+    const [tipoMensaje, setTipoMensaje] = useState('');
 
     const cargarReservas = () => {
         setLoading(true);
@@ -18,8 +23,43 @@ const MisReservas = () => {
             .finally(() => setLoading(false));
     };
 
+    // ── Verificar pago exitoso en el retorno de Stripe ──
     useEffect(() => {
-        cargarReservas();
+        const query = new URLSearchParams(window.location.search);
+        const pagoSuccess = query.get('pago_success');
+        const sessionId = query.get('session_id');
+
+        if (pagoSuccess === 'true' && sessionId) {
+            setProcesandoPago(true);
+            setMensajePago('Procesando pago seguro con Stripe...');
+            setTipoMensaje('');
+
+            finanzasService.confirmarPagoStripe(sessionId)
+                .then(() => {
+                    setTipoMensaje('exito');
+                    setMensajePago('¡Pago confirmado con éxito! Tu reserva ha sido confirmada.');
+                    cargarReservas();
+                    setTimeout(() => {
+                        setProcesandoPago(false);
+                        setMensajePago('');
+                        setTipoMensaje('');
+                    }, 4000);
+                })
+                .catch(err => {
+                    setTipoMensaje('error');
+                    setMensajePago(err.response?.data?.error || 'Error al verificar el pago con Stripe.');
+                    setTimeout(() => {
+                        setProcesandoPago(false);
+                        setMensajePago('');
+                        setTipoMensaje('');
+                    }, 5000);
+                });
+
+            // Limpiar query params de la URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+            cargarReservas();
+        }
     }, []);
 
     const handleCancelar = async (id, reserva) => {
@@ -236,7 +276,33 @@ const MisReservas = () => {
                         );
                     })}
                 </div>
+            )}
 
+            {/* ── Modal de Procesando Pago (Stripe Success Return) ── */}
+            {procesandoPago && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl border border-slate-100 text-center animate-in zoom-in duration-200">
+                        {tipoMensaje === '' && (
+                            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
+                        )}
+                        {tipoMensaje === 'exito' && (
+                            <div className="mx-auto mb-4 h-16 w-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-3xl">
+                                ✓
+                            </div>
+                        )}
+                        {tipoMensaje === 'error' && (
+                            <div className="mx-auto mb-4 h-16 w-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center text-3xl">
+                                ✗
+                            </div>
+                        )}
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">
+                            {tipoMensaje === 'exito' ? '¡Pago Confirmado!' : tipoMensaje === 'error' ? 'Error de Pago' : 'Verificando Transacción'}
+                        </h3>
+                        <p className="text-sm text-slate-600">
+                            {mensajePago}
+                        </p>
+                    </div>
+                </div>
             )}
         </div>
     );
