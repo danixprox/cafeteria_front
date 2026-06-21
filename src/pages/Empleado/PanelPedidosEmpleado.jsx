@@ -15,6 +15,7 @@ const PanelPedidosEmpleado = () => {
   const [salaSeleccionada, setSalaSeleccionada] = useState(null);
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null);
   const [carrito, setCarrito] = useState({}); // { productoId: { producto, cantidad } }
+  const [pedidoActivo, setPedidoActivo] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
@@ -39,6 +40,27 @@ const PanelPedidosEmpleado = () => {
     setTimeout(() => setError(''), 4000);
   };
 
+  const actualizarCarritoDesdePedido = (pedido) => {
+    setPedidoActivo(pedido);
+    const nuevoCarrito = {};
+    if (pedido && pedido.detalles && Array.isArray(pedido.detalles)) {
+      pedido.detalles.forEach(det => {
+        nuevoCarrito[det.producto] = {
+          producto: {
+            id: det.producto,
+            nombre: det.producto_nombre,
+            precio: parseFloat(det.precio_unitario),
+            imagen: det.producto_imagen,
+            stock: 9999
+          },
+          cantidad: det.cantidad,
+          detalleId: det.id
+        };
+      });
+    }
+    setCarrito(nuevoCarrito);
+  };
+
   // Paso 1 → 2: seleccionar sala y cargar sus mesas
   const handleSeleccionarSala = async (sala) => {
     setSalaSeleccionada(sala);
@@ -55,58 +77,122 @@ const PanelPedidosEmpleado = () => {
     }
   };
 
-  // Paso 2 → 3: seleccionar mesa y abrir catálogo
-  const handleSeleccionarMesa = (mesa) => {
+  // Paso 2 → 3: seleccionar mesa
+  const handleSeleccionarMesa = async (mesa) => {
     setMesaSeleccionada(mesa);
     setCarrito({});
-    setPaso('catalogo');
+    setPedidoActivo(null);
+    setError('');
+
+    if (mesa.estado === 'disponible') {
+      setPaso('catalogo');
+    } else {
+      setCargando(true);
+      try {
+        const res = await finanzasService.getPedidoActivoMesa(mesa.id);
+        actualizarCarritoDesdePedido(res.data);
+        setPaso('catalogo');
+      } catch (err) {
+        if (err.response?.status === 404) {
+          try {
+            const initRes = await finanzasService.iniciarPedidoMesa(mesa.id);
+            actualizarCarritoDesdePedido(initRes.data);
+            setPaso('catalogo');
+          } catch (initErr) {
+            mostrarError('Error al iniciar pedido en el backend');
+          }
+        } else {
+          mostrarError('Error al cargar el pedido activo de la mesa');
+        }
+      } finally {
+        setCargando(false);
+      }
+    }
   };
 
-  // Agregar producto al carrito (acumula si ya existe)
-  const handleAgregarAlCarrito = (producto, cantidad) => {
-    const cantidadActual = carrito[producto.id]?.cantidad || 0;
-    const nuevaCantidad = cantidadActual + cantidad;
+  const handleIniciarAtencion = async () => {
+    if (!mesaSeleccionada) return;
+    setCargando(true);
+    setError('');
+    try {
+      const res = await finanzasService.iniciarPedidoMesa(mesaSeleccionada.id);
+      actualizarCarritoDesdePedido(res.data);
+      setMesaSeleccionada(prev => ({ ...prev, estado: 'ocupada' }));
 
-    if (nuevaCantidad > producto.stock) {
-      mostrarError(
-        `Stock insuficiente para "${producto.nombre}". Disponible: ${producto.stock - cantidadActual}`
-      );
+      // Refrescar listado de mesas
+      const mesasRes = await salasService.getMesas(salaSeleccionada.id);
+      setMesas(Array.isArray(mesasRes.data) ? mesasRes.data : []);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al iniciar la atención';
+      mostrarError(msg);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  // Agregar producto al carrito (persiste en backend)
+  const handleAgregarAlCarrito = async (producto, cantidad) => {
+    if (!pedidoActivo) {
+      mostrarError('Debe iniciar la atención de la mesa antes de agregar productos');
       return;
     }
+    setError('');
+    try {
+      const res = await finanzasService.agregarDetalle(pedidoActivo.id, {
+        producto_id: producto.id,
+        cantidad: cantidad,
+      });
+      actualizarCarritoDesdePedido(res.data);
 
-    setCarrito(prev => ({
-      ...prev,
-      [producto.id]: { producto, cantidad: nuevaCantidad },
-    }));
+      const prodRes = await productosService.getDisponibles();
+      setProductos(Array.isArray(prodRes.data) ? prodRes.data : []);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al agregar producto al pedido';
+      mostrarError(msg);
+    }
   };
 
-  // Modificar cantidad de un ítem ya en el carrito
-  const handleActualizarCantidad = (productoId, nuevaCantidad) => {
+  // Modificar cantidad de un ítem ya en el carrito (persiste en backend)
+  const handleActualizarCantidad = async (productoId, nuevaCantidad) => {
+    const item = carrito[productoId];
+    if (!item || !pedidoActivo) return;
+
     if (nuevaCantidad <= 0) {
-      handleEliminarDelCarrito(productoId);
-      return;
-    }
-    const producto = carrito[productoId]?.producto;
-    if (!producto) return;
-
-    if (nuevaCantidad > producto.stock) {
-      mostrarError(`Stock máximo para "${producto.nombre}": ${producto.stock}`);
+      await handleEliminarDelCarrito(productoId);
       return;
     }
 
-    setCarrito(prev => ({
-      ...prev,
-      [productoId]: { ...prev[productoId], cantidad: nuevaCantidad },
-    }));
+    setError('');
+    try {
+      const res = await finanzasService.actualizarDetalle(pedidoActivo.id, item.detalleId, {
+        cantidad: nuevaCantidad
+      });
+      actualizarCarritoDesdePedido(res.data);
+
+      const prodRes = await productosService.getDisponibles();
+      setProductos(Array.isArray(prodRes.data) ? prodRes.data : []);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al actualizar la cantidad';
+      mostrarError(msg);
+    }
   };
 
-  // Eliminar ítem del carrito
-  const handleEliminarDelCarrito = (productoId) => {
-    setCarrito(prev => {
-      const copia = { ...prev };
-      delete copia[productoId];
-      return copia;
-    });
+  // Eliminar ítem del carrito (persiste en backend)
+  const handleEliminarDelCarrito = async (productoId) => {
+    const item = carrito[productoId];
+    if (!item || !pedidoActivo) return;
+
+    setError('');
+    try {
+      const res = await finanzasService.eliminarDetalle(pedidoActivo.id, item.detalleId);
+      actualizarCarritoDesdePedido(res.data);
+
+      const prodRes = await productosService.getDisponibles();
+      setProductos(Array.isArray(prodRes.data) ? prodRes.data : []);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al eliminar el producto';
+      mostrarError(msg);
+    }
   };
 
   // Abre el modal de pasarela de pago
@@ -122,21 +208,14 @@ const PanelPedidosEmpleado = () => {
     setError('');
   };
 
-  // Pago con Stripe: crea el pedido en el backend y redirige
+  // Pago con Stripe
   const handleElegirStripe = async () => {
-    const items = Object.values(carrito);
-    const productosPayload = items.map(item => ({
-      id: item.producto.id,
-      cantidad: item.cantidad,
-    }));
-
+    if (!pedidoActivo) return;
     setProcesandoAccionPago(true);
     setError('');
     try {
       const res = await finanzasService.iniciarPagoPedido({
-        sala_id: salaSeleccionada.id,
-        mesa_id: mesaSeleccionada.id,
-        productos: productosPayload,
+        pedido_id: pedidoActivo.id,
         metodo_pago: 'stripe',
       });
       if (res.data?.url) {
@@ -153,21 +232,14 @@ const PanelPedidosEmpleado = () => {
     }
   };
 
-  // Pago con QR: crea el pedido y devuelve la imagen QR
+  // Pago con QR
   const handleElegirQR = async () => {
-    const items = Object.values(carrito);
-    const productosPayload = items.map(item => ({
-      id: item.producto.id,
-      cantidad: item.cantidad,
-    }));
-
+    if (!pedidoActivo) return;
     setProcesandoAccionPago(true);
     setError('');
     try {
       const res = await finanzasService.iniciarPagoPedido({
-        sala_id: salaSeleccionada.id,
-        mesa_id: mesaSeleccionada.id,
-        productos: productosPayload,
+        pedido_id: pedidoActivo.id,
         metodo_pago: 'qr',
       });
       setPagoInfo(res.data);
@@ -181,7 +253,7 @@ const PanelPedidosEmpleado = () => {
     }
   };
 
-  // Confirmar pago QR luego de que el cliente escaneó
+  // Confirmar pago QR
   const handleConfirmarPagoQR = async () => {
     if (!pagoInfo?.pago_id) return;
     setProcesandoAccionPago(true);
@@ -190,6 +262,7 @@ const PanelPedidosEmpleado = () => {
       await finanzasService.confirmarPagoQR(pagoInfo.pago_id);
       setExito(`Pedido confirmado y pagado para ${mesaSeleccionada.nombre}`);
       setCarrito({});
+      setPedidoActivo(null);
       setMostrarModalPago(false);
       setPagoInfo(null);
       setMetodoPagoSeleccionado(null);
@@ -214,18 +287,8 @@ const PanelPedidosEmpleado = () => {
     }
   };
 
-  // Cancelar el modal (y revertir el pedido si ya se creó)
-  const handleCancelarPago = async () => {
-    if (pagoInfo?.pedido_id) {
-      setProcesandoAccionPago(true);
-      try {
-        await finanzasService.cancelarPagoPedido(pagoInfo.pedido_id);
-      } catch (err) {
-        console.error('Error al cancelar el pedido pendiente:', err);
-      } finally {
-        setProcesandoAccionPago(false);
-      }
-    }
+  // Cancelar el modal sin destruir el pedido activo
+  const handleCancelarPago = () => {
     setMostrarModalPago(false);
     setPagoInfo(null);
     setMetodoPagoSeleccionado(null);
@@ -236,12 +299,14 @@ const PanelPedidosEmpleado = () => {
     setSalaSeleccionada(null);
     setMesaSeleccionada(null);
     setCarrito({});
+    setPedidoActivo(null);
   };
 
   const volverAMesas = () => {
     setPaso('mesas');
     setMesaSeleccionada(null);
     setCarrito({});
+    setPedidoActivo(null);
   };
 
   return (
@@ -309,22 +374,37 @@ const PanelPedidosEmpleado = () => {
       )}
 
       {!cargando && paso === 'catalogo' && (
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <CatalogoProductos
-            productos={productos}
-            carrito={carrito}
-            onAgregarAlCarrito={handleAgregarAlCarrito}
-          />
-          <ResumenPedido
-            carrito={carrito}
-            onActualizarCantidad={handleActualizarCantidad}
-            onEliminar={handleEliminarDelCarrito}
-            onConfirmar={handleConfirmarPedido}
-            confirmando={procesandoAccionPago}
-            mesa={mesaSeleccionada}
-            sala={salaSeleccionada}
-          />
-        </div>
+        mesaSeleccionada?.estado === 'disponible' ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-slate-50 border border-dashed border-slate-200 rounded-[2rem] max-w-lg mx-auto">
+            <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 text-2xl mb-4">🪑</div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Mesa libre: {mesaSeleccionada.nombre}</h3>
+            <p className="text-sm text-slate-500 mb-6">Esta mesa no tiene una atención activa de mesero. Inicie la atención para ocupar la mesa y empezar a registrar productos.</p>
+            <button
+              onClick={handleIniciarAtencion}
+              disabled={cargando}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg shadow-emerald-100 flex items-center gap-2"
+            >
+              🚀 Iniciar atención / Ocupar mesa
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+            <CatalogoProductos
+              productos={productos}
+              carrito={carrito}
+              onAgregarAlCarrito={handleAgregarAlCarrito}
+            />
+            <ResumenPedido
+              carrito={carrito}
+              onActualizarCantidad={handleActualizarCantidad}
+              onEliminar={handleEliminarDelCarrito}
+              onConfirmar={handleConfirmarPedido}
+              confirmando={procesandoAccionPago}
+              mesa={mesaSeleccionada}
+              sala={salaSeleccionada}
+            />
+          </div>
+        )
       )}
 
       {/* ── Modal de Pasarela de Pago ── */}
