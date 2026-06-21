@@ -6,6 +6,7 @@ import SelectorSalas from './SelectorSalas';
 import SelectorMesas from './SelectorMesas';
 import CatalogoProductos from './CatalogoProductos';
 import ResumenPedido from './ResumenPedido';
+import NotaVentaModal from './NotaVentaModal';
 
 const PanelPedidosEmpleado = () => {
   const [paso, setPaso] = useState('salas'); // 'salas' | 'mesas' | 'catalogo'
@@ -23,6 +24,7 @@ const PanelPedidosEmpleado = () => {
   const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState(null);
   const [confirmarEfectivoModal, setConfirmarEfectivoModal] = useState(false);
   const [pagoInfo, setPagoInfo] = useState(null);
+  const [notaVenta, setNotaVenta] = useState(null);
   const [procesandoAccionPago, setProcesandoAccionPago] = useState(false);
 
   // Cargar salas y productos al montar
@@ -39,6 +41,29 @@ const PanelPedidosEmpleado = () => {
   const mostrarError = (msg) => {
     setError(msg);
     setTimeout(() => setError(''), 4000);
+  };
+
+  const crearNotaVentaLocal = (pedido, metodoPago) => {
+    const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+    const productos = (pedido?.detalles || []).map(det => ({
+      cantidad: det.cantidad,
+      producto: det.producto_nombre,
+      precio: parseFloat(det.precio_unitario).toFixed(2),
+      total: parseFloat(det.subtotal).toFixed(2),
+    }));
+    const total = parseFloat(pedido?.total_pendiente || pedido?.total || 0);
+
+    return {
+      numeroComprobante: `NV-P${String(pedido?.id || 0).padStart(6, '0')}`,
+      fechaHora: new Date().toLocaleString('es-BO'),
+      mesero: usuario?.nombre || 'No registrado',
+      mesa: mesaSeleccionada?.nombre || 'Sin mesa',
+      sala: salaSeleccionada?.nombre || 'Sin sala',
+      productos,
+      subtotal: total.toFixed(2),
+      total: total.toFixed(2),
+      metodoPago,
+    };
   };
 
   const actualizarCarritoDesdePedido = (pedido) => {
@@ -293,7 +318,8 @@ const PanelPedidosEmpleado = () => {
     setProcesandoAccionPago(true);
     setError('');
     try {
-      await finanzasService.confirmarPagoQR(pagoInfo.pago_id);
+      const res = await finanzasService.confirmarPagoQR(pagoInfo.pago_id);
+      setNotaVenta(res.data?.nota_venta || crearNotaVentaLocal(pedidoActivo, 'QR'));
       setExito(`Pedido confirmado y pagado para ${mesaSeleccionada.nombre}`);
       setCarrito({});
       setPedidoActivo(null);
@@ -334,6 +360,9 @@ const PanelPedidosEmpleado = () => {
     setError('');
     try {
       const res = await finanzasService.pagarEfectivo(pedidoActivo.id);
+      const notaRes = await finanzasService.obtenerNotaVentaPedido(pedidoActivo.id, 'efectivo')
+        .catch(() => null);
+      setNotaVenta(notaRes?.data?.nota_venta || crearNotaVentaLocal(pedidoActivo, 'EFECTIVO'));
       setExito(res.data.message || 'Pago en efectivo registrado correctamente');
       setCarrito({});
       setPedidoActivo(null);
@@ -367,6 +396,12 @@ const PanelPedidosEmpleado = () => {
     setMostrarModalPago(false);
     setPagoInfo(null);
     setMetodoPagoSeleccionado(null);
+    setConfirmarEfectivoModal(false);
+  };
+
+  const handleVolverAElegirMetodoPago = () => {
+    setMetodoPagoSeleccionado(null);
+    setPagoInfo(null);
     setConfirmarEfectivoModal(false);
   };
 
@@ -598,10 +633,10 @@ const PanelPedidosEmpleado = () => {
                   <button
                     type="button"
                     disabled={procesandoAccionPago}
-                    onClick={handleCancelarPago}
-                    className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-3.5 rounded-xl transition text-sm"
+                    onClick={handleVolverAElegirMetodoPago}
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3.5 rounded-xl transition text-sm"
                   >
-                    Cancelar y revertir stock
+                    Volver a elegir método de pago
                   </button>
                 </div>
               </div>
@@ -609,6 +644,59 @@ const PanelPedidosEmpleado = () => {
           </div>
         </div>
       )}
+
+      {false && notaVenta && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl border border-slate-100">
+            <h3 className="text-xl font-black text-slate-900 text-center mb-2">
+              Nota de Venta
+            </h3>
+            <p className="text-sm text-slate-500 text-center mb-6">
+              Pedido #{notaVenta.pedido?.id} · {notaVenta.fecha}
+            </p>
+            <div className="rounded-2xl bg-slate-50 p-4 mb-5 border border-slate-200/60 space-y-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="font-semibold text-slate-500">Mesa</span>
+                <span className="font-bold text-slate-800">{notaVenta.mesa?.nombre}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="font-semibold text-slate-500">Sala</span>
+                <span className="font-bold text-slate-800">{notaVenta.sala?.nombre}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="font-semibold text-slate-500">Método</span>
+                <span className="font-bold text-slate-800">{notaVenta.metodoPago}</span>
+              </div>
+            </div>
+            <div className="space-y-2 mb-5">
+              {notaVenta.pedido?.detalles?.map(det => (
+                <div key={det.id} className="flex items-start justify-between gap-3 text-sm">
+                  <span className="text-slate-700">
+                    <strong>{det.cantidad}x</strong> {det.producto_nombre}
+                  </span>
+                  <span className="font-semibold text-slate-900">
+                    Bs. {parseFloat(det.subtotal).toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-200 pt-4 mb-6">
+              <span className="text-sm font-semibold text-slate-500">Total pagado</span>
+              <span className="text-2xl font-black text-emerald-600">
+                Bs. {parseFloat(notaVenta.pedido?.total_pendiente || notaVenta.pedido?.total || 0).toFixed(2)}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setNotaVenta(null)}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl transition text-sm"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+      <NotaVentaModal nota={notaVenta} onClose={() => setNotaVenta(null)} />
     </section>
   );
 };
