@@ -63,6 +63,11 @@ const AdminSidebar = ({ vista, setVista, mostrarInventario, setMostrarInventario
     icon: <Bell size={18} />
   },
   {
+    id: 'reportes',
+    label: 'Generar Reporte',
+    icon: <ClipboardCheck size={18} />
+  },
+  {
     id: 'categorias',
     label: 'Gestión de Categorías',
     icon: <ClipboardCheck size={18} />
