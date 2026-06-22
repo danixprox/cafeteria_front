@@ -20,6 +20,18 @@ const pedidosService = {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     return axiosClient.patch(`/pedidos/${pedidoId}/cancelar_pedido/`, null, { headers });
   },
+
+  aplicarPromocion: (pedidoId, codigo) => {
+    const token = localStorage.getItem('token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    return axiosClient.post(`/pedidos/${pedidoId}/aplicar-promocion/`, { codigo }, { headers });
+  },
+
+  quitarPromocion: (pedidoId) => {
+    const token = localStorage.getItem('token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    return axiosClient.post(`/pedidos/${pedidoId}/quitar-promocion/`, null, { headers });
+  },
 };
 
 export default pedidosService;

@@ -8,6 +8,7 @@ import {
   ScrollText,
   Users,
   WalletCards,
+  Tag,
 } from 'lucide-react';
 
 const menuItems = [
@@ -20,6 +21,7 @@ const menuItems = [
   { id: 'cierre_caja', label: 'Cierre de Caja', icon: <WalletCards size={18} /> },
   { id: 'categorias', label: 'Gestion de Categorias', icon: <ClipboardCheck size={18} /> },
   { id: 'productos', label: 'Gestion de Productos', icon: <ClipboardCheck size={18} /> },
+  { id: 'promociones', label: 'Gestion de Promociones', icon: <Tag size={18} /> },
   { id: 'historial_pedidos', label: 'Historial de Pedidos', icon: <History size={18} /> },
 ];
 
