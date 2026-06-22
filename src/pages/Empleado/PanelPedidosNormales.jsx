@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { salasService } from '../../services/salasService';
 import { productosService } from '../../services/productosService';
 import { finanzasService } from '../../services/finanzasService';
+import pedidosService from '../../services/pedidosService';
 import SelectorSalas from './SelectorSalas';
 import SelectorMesas from './SelectorMesas';
 import CatalogoProductos from './CatalogoProductos';
 import ResumenPedido from './ResumenPedido';
 import NotaVentaModal from './NotaVentaModal';
-import ClientePedidoSelector from '../../Components/ClientePedidoSelector';
+import ClientePedidoSelector from '../../components/ClientePedidoSelector';
 
 const PanelPedidosNormales = ({ onPedidoCreado }) => {
   const [paso, setPaso] = useState('salas');

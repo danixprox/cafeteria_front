@@ -344,7 +344,6 @@ const AdminPage = () => {
 
   const getNombreUsuario = (item) => item.usuario?.nombre || item.nombre || '';
   const getCorreoUsuario = (item) => item.usuario?.correo || item.correo || '';
-  const getTelefonoUsuario = (item) => item.usuario?.telefono || item.telefono || '';
   const requisitosEmpleado = obtenerRequisitos(empleadoForm.contrasena);
 
   const empleadosFiltrados = empleados.filter((empleado) => {

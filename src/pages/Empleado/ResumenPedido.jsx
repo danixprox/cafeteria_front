@@ -22,8 +22,8 @@ const ResumenPedido = ({
     try {
       await onAplicarPromocion(codigoPromo.trim());
       setCodigoPromo('');
-    } catch (err) {
-      // Keep code in input on error for correction
+    } catch {
+      return;
     }
   };
   const items = Object.values(carrito);
