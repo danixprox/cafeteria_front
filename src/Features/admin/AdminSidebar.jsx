@@ -11,56 +11,16 @@ import {
 } from 'lucide-react';
 
 const menuItems = [
-  {
-    id: 'usuarios',
-    label: 'Usuarios',
-    icon: <Users size={18} />,
-  },
-  {
-    id: 'bitacora',
-    label: 'Bitacora',
-    icon: <ScrollText size={18} />,
-  },
-  {
-    id: 'salas',
-    label: 'Gestion de Salas',
-    icon: <DoorOpen size={18} />,
-  },
-  {
-    id: 'reservas',
-    label: 'Gestion de Reservas',
-    icon: <CalendarDays size={18} />,
-  },
-  {
-    id: 'notificaciones',
-    label: 'Notificaciones',
-    icon: <Bell size={18} />,
-  },
-  {
-    id: 'reportes',
-    label: 'Generar Reporte',
-    icon: <ClipboardCheck size={18} />,
-  },
-  {
-    id: 'cierre_caja',
-    label: 'Cierre de Caja',
-    icon: <WalletCards size={18} />,
-  },
-  {
-    id: 'categorias',
-    label: 'Gestion de Categorias',
-    icon: <ClipboardCheck size={18} />,
-  },
-  {
-    id: 'productos',
-    label: 'Gestion de Productos',
-    icon: <ClipboardCheck size={18} />,
-  },
-  {
-    id: 'historial_pedidos',
-    label: 'Historial de Pedidos',
-    icon: <History size={18} />,
-  },
+  { id: 'usuarios', label: 'Usuarios', icon: <Users size={18} /> },
+  { id: 'bitacora', label: 'Bitacora', icon: <ScrollText size={18} /> },
+  { id: 'salas', label: 'Gestion de Salas', icon: <DoorOpen size={18} /> },
+  { id: 'reservas', label: 'Gestion de Reservas', icon: <CalendarDays size={18} /> },
+  { id: 'notificaciones', label: 'Notificaciones', icon: <Bell size={18} /> },
+  { id: 'reportes', label: 'Generar Reporte', icon: <ClipboardCheck size={18} /> },
+  { id: 'cierre_caja', label: 'Cierre de Caja', icon: <WalletCards size={18} /> },
+  { id: 'categorias', label: 'Gestion de Categorias', icon: <ClipboardCheck size={18} /> },
+  { id: 'productos', label: 'Gestion de Productos', icon: <ClipboardCheck size={18} /> },
+  { id: 'historial_pedidos', label: 'Historial de Pedidos', icon: <History size={18} /> },
 ];
 
 const AdminSidebar = ({ vista, setVista, handleLogout }) => {
@@ -68,12 +28,12 @@ const AdminSidebar = ({ vista, setVista, handleLogout }) => {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setIsOpen(false);
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setIsOpen(false);
     };
 
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };

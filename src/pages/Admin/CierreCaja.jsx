@@ -3,10 +3,10 @@ import api from '../../services/axiosClient';
 
 const todayISO = () => {
   const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const money = (value) => `Bs. ${Number(value || 0).toFixed(2)}`;
@@ -56,8 +56,7 @@ const CierreCaja = () => {
       return;
     }
 
-    const confirmar = window.confirm('¿Confirmas el cierre de caja para el periodo seleccionado?');
-    if (!confirmar) return;
+    if (!window.confirm('Confirmas el cierre de caja para el periodo seleccionado?')) return;
 
     setLoading(true);
     setError('');
@@ -73,10 +72,6 @@ const CierreCaja = () => {
     }
   };
 
-  const imprimir = () => {
-    window.print();
-  };
-
   const porMetodo = cierre?.por_metodo || [];
   const comprobantes = cierre?.comprobantes || [];
 
@@ -84,25 +79,16 @@ const CierreCaja = () => {
     <section className="space-y-6">
       <style>{`
         @media print {
-          body * {
-            visibility: hidden !important;
-          }
-
+          body * { visibility: hidden !important; }
           #cierre-caja-print-area,
-          #cierre-caja-print-area * {
-            visibility: visible !important;
-          }
-
+          #cierre-caja-print-area * { visibility: visible !important; }
           #cierre-caja-print-area {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
           }
-
-          .cierre-caja-actions {
-            display: none !important;
-          }
+          .cierre-caja-actions { display: none !important; }
         }
       `}</style>
 
@@ -120,8 +106,8 @@ const CierreCaja = () => {
             <input
               type="date"
               value={fecha}
-              onChange={(e) => {
-                setFecha(e.target.value);
+              onChange={(event) => {
+                setFecha(event.target.value);
                 setFechaInicio('');
                 setFechaFin('');
               }}
@@ -133,7 +119,7 @@ const CierreCaja = () => {
             <input
               type="date"
               value={fechaInicio}
-              onChange={(e) => setFechaInicio(e.target.value)}
+              onChange={(event) => setFechaInicio(event.target.value)}
               className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
             />
           </label>
@@ -142,7 +128,7 @@ const CierreCaja = () => {
             <input
               type="date"
               value={fechaFin}
-              onChange={(e) => setFechaFin(e.target.value)}
+              onChange={(event) => setFechaFin(event.target.value)}
               className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
             />
           </label>
@@ -207,14 +193,14 @@ const CierreCaja = () => {
             <div className="cierre-caja-actions flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={imprimir}
+                onClick={() => window.print()}
                 className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
               >
                 Generar Reporte PDF
               </button>
               <button
                 type="button"
-                onClick={imprimir}
+                onClick={() => window.print()}
                 className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
               >
                 Imprimir
@@ -240,7 +226,7 @@ const CierreCaja = () => {
                   <th className="px-4 py-3">Sala</th>
                   <th className="px-4 py-3">Cliente / Mesero</th>
                   <th className="px-4 py-3">Tipo</th>
-                  <th className="px-4 py-3">Método</th>
+                  <th className="px-4 py-3">Metodo</th>
                   <th className="px-4 py-3 text-right">Total</th>
                 </tr>
               </thead>
