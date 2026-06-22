@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reservasService } from '../../services/reservasService';
+import { finanzasService } from '../../services/finanzasService';
+import NotaVentaClienteModal from './NotaVentaClienteModal';
 
 const MisReservas = () => {
     const [reservas, setReservas] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+
+    const [procesandoPago, setProcesandoPago] = useState(false);
+    const [mensajePago, setMensajePago] = useState('');
+    const [tipoMensaje, setTipoMensaje] = useState('');
+    const [notaVenta, setNotaVenta] = useState(null);
 
     const cargarReservas = () => {
         setLoading(true);
@@ -18,11 +25,54 @@ const MisReservas = () => {
             .finally(() => setLoading(false));
     };
 
+    // ── Verificar pago exitoso en el retorno de Stripe ──
     useEffect(() => {
-        const cargaInicial = setTimeout(cargarReservas, 0);
+        const query = new URLSearchParams(window.location.search);
+        const pagoSuccess = query.get('pago_success');
+        const sessionId = query.get('session_id');
+        let cargaInicial;
+
+        if (pagoSuccess === 'true' && sessionId) {
+            setProcesandoPago(true);
+            setMensajePago('Procesando pago seguro con Stripe...');
+            setTipoMensaje('');
+
+            finanzasService.confirmarPagoStripe(sessionId)
+                .then((res) => {
+                    setTipoMensaje('exito');
+                    setMensajePago('¡Pago confirmado con éxito! Tu reserva ha sido confirmada.');
+                    if (res.data?.nota_venta) {
+                        setNotaVenta({
+                            ...res.data.nota_venta,
+                            metodoPago: 'STRIPE',
+                        });
+                    }
+                    cargarReservas();
+                    setTimeout(() => {
+                        setProcesandoPago(false);
+                        setMensajePago('');
+                        setTipoMensaje('');
+                    }, 4000);
+                })
+                .catch(err => {
+                    setTipoMensaje('error');
+                    setMensajePago(err.response?.data?.error || 'Error al verificar el pago con Stripe.');
+                    setTimeout(() => {
+                        setProcesandoPago(false);
+                        setMensajePago('');
+                        setTipoMensaje('');
+                    }, 5000);
+                });
+
+            // Limpiar query params de la URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+            cargaInicial = setTimeout(cargarReservas, 0);
+        }
+
         const intervalo = setInterval(cargarReservas, 30000);
         return () => {
-            clearTimeout(cargaInicial);
+            if (cargaInicial) clearTimeout(cargaInicial);
             clearInterval(intervalo);
         };
     }, []);
@@ -239,8 +289,39 @@ const MisReservas = () => {
                         );
                     })}
                 </div>
-
             )}
+
+            {/* ── Modal de Procesando Pago (Stripe Success Return) ── */}
+            {procesandoPago && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl border border-slate-100 text-center animate-in zoom-in duration-200">
+                        {tipoMensaje === '' && (
+                            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
+                        )}
+                        {tipoMensaje === 'exito' && (
+                            <div className="mx-auto mb-4 h-16 w-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-3xl">
+                                ✓
+                            </div>
+                        )}
+                        {tipoMensaje === 'error' && (
+                            <div className="mx-auto mb-4 h-16 w-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center text-3xl">
+                                ✗
+                            </div>
+                        )}
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">
+                            {tipoMensaje === 'exito' ? '¡Pago Confirmado!' : tipoMensaje === 'error' ? 'Error de Pago' : 'Verificando Transacción'}
+                        </h3>
+                        <p className="text-sm text-slate-600">
+                            {mensajePago}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            <NotaVentaClienteModal
+                nota={notaVenta}
+                onClose={() => setNotaVenta(null)}
+            />
         </div>
     );
 };

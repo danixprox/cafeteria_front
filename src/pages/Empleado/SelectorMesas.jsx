@@ -64,6 +64,13 @@ const SelectorMesas = ({ mesas, sala, onSeleccionar }) => {
               </div>
               <p className="text-sm text-slate-600">Capacidad: {mesa.capacidad} personas</p>
               <p className={`mt-2 text-xs font-semibold ${cfg.text}`}>{cfg.label}</p>
+              
+              {mesa.cantidad_productos > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-200/50 flex flex-col gap-0.5 text-xs text-slate-600">
+                  <span className="font-medium text-slate-700">🛒 {mesa.cantidad_productos} {mesa.cantidad_productos === 1 ? 'producto' : 'productos'}</span>
+                  <span className="font-bold text-amber-700">💰 Bs. {Number(mesa.total_pendiente).toFixed(2)} pendiente</span>
+                </div>
+              )}
             </button>
           );
         })}
