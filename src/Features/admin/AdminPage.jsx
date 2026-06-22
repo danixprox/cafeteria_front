@@ -23,13 +23,13 @@ import AdminCategorias from '../../pages/Admin/AdminCategorias';
 import AdminProductos from '../../pages/Admin/AdminProductos';
 import AdminHistorialPedidos from '../../pages/Admin/HistorialPedidos';
 import GenerarReporte from '../../pages/Admin/GenerarReporte';
+import CierreCaja from '../../pages/Admin/CierreCaja';
 const AdminPage = () => {
   const navigate = useNavigate();
 
   const [empleados, setEmpleados] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [bitacora, setBitacora] = useState([]);
-  const [mostrarInventario, setMostrarInventario] = useState(false);
   const [soloImportantes, setSoloImportantes] = useState(false);
   const [activeUserTab, setActiveUserTab] = useState('empleados');
   const [busquedaUsuario, setBusquedaUsuario] = useState('');
@@ -394,8 +394,6 @@ const AdminPage = () => {
       <AdminSidebar 
         vista={vista} 
         setVista={setVista} 
-        mostrarInventario={mostrarInventario} 
-        setMostrarInventario={setMostrarInventario} 
         handleLogout={handleLogout} 
       />
 
@@ -819,7 +817,7 @@ const AdminPage = () => {
     </div>
   </div>
 )}
-{mostrarInventario && (
+{false && (
   <section>
     <h2 className="text-xl font-semibold mb-4 text-slate-900">
       📦 Inventario (Admin)
@@ -910,6 +908,10 @@ const AdminPage = () => {
 
 {vista === "reportes" && (
   <GenerarReporte />
+)}
+
+{vista === "cierre_caja" && (
+  <CierreCaja />
 )}
 
 {vista === "categorias" && (
