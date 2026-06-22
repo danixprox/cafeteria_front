@@ -30,49 +30,49 @@ const MisReservas = () => {
         const query = new URLSearchParams(window.location.search);
         const pagoSuccess = query.get('pago_success');
         const sessionId = query.get('session_id');
-        let cargaInicial;
 
-        if (pagoSuccess === 'true' && sessionId) {
-            setProcesandoPago(true);
-            setMensajePago('Procesando pago seguro con Stripe...');
-            setTipoMensaje('');
+        const procesarRetorno = setTimeout(() => {
+            if (pagoSuccess === 'true' && sessionId) {
+                setProcesandoPago(true);
+                setMensajePago('Procesando pago seguro con Stripe...');
+                setTipoMensaje('');
 
-            finanzasService.confirmarPagoStripe(sessionId)
-                .then((res) => {
-                    setTipoMensaje('exito');
-                    setMensajePago('¡Pago confirmado con éxito! Tu reserva ha sido confirmada.');
-                    if (res.data?.nota_venta) {
-                        setNotaVenta({
-                            ...res.data.nota_venta,
-                            metodoPago: 'STRIPE',
-                        });
-                    }
-                    cargarReservas();
-                    setTimeout(() => {
-                        setProcesandoPago(false);
-                        setMensajePago('');
-                        setTipoMensaje('');
-                    }, 4000);
-                })
-                .catch(err => {
-                    setTipoMensaje('error');
-                    setMensajePago(err.response?.data?.error || 'Error al verificar el pago con Stripe.');
-                    setTimeout(() => {
-                        setProcesandoPago(false);
-                        setMensajePago('');
-                        setTipoMensaje('');
-                    }, 5000);
-                });
+                finanzasService.confirmarPagoStripe(sessionId)
+                    .then((res) => {
+                        setTipoMensaje('exito');
+                        setMensajePago('¡Pago confirmado con éxito! Tu reserva ha sido confirmada.');
+                        if (res.data?.nota_venta) {
+                            setNotaVenta({
+                                ...res.data.nota_venta,
+                                metodoPago: 'STRIPE',
+                            });
+                        }
+                        cargarReservas();
+                        setTimeout(() => {
+                            setProcesandoPago(false);
+                            setMensajePago('');
+                            setTipoMensaje('');
+                        }, 4000);
+                    })
+                    .catch(err => {
+                        setTipoMensaje('error');
+                        setMensajePago(err.response?.data?.error || 'Error al verificar el pago con Stripe.');
+                        setTimeout(() => {
+                            setProcesandoPago(false);
+                            setMensajePago('');
+                            setTipoMensaje('');
+                        }, 5000);
+                    });
 
-            // Limpiar query params de la URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-        } else {
-            cargaInicial = setTimeout(cargarReservas, 0);
-        }
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                cargarReservas();
+            }
+        }, 0);
 
         const intervalo = setInterval(cargarReservas, 30000);
         return () => {
-            if (cargaInicial) clearTimeout(cargaInicial);
+            clearTimeout(procesarRetorno);
             clearInterval(intervalo);
         };
     }, []);

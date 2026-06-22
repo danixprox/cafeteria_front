@@ -10,7 +10,7 @@ export const finanzasService = {
     cancelarPagoReserva: (reservaId) => api.post('/finanzas/cancelar-pago-reserva/', { reserva_id: reservaId }),
     
     // Cart and Mesa State persistence
-    iniciarPedidoMesa: (mesaId) => api.post(`/pedidos/mesa/${mesaId}/iniciar/`),
+    iniciarPedidoMesa: (mesaId, cliente = {}) => api.post(`/pedidos/mesa/${mesaId}/iniciar/`, cliente),
     getPedidoActivoMesa: (mesaId) => api.get(`/pedidos/mesa/${mesaId}/activo/`),
     agregarDetalle: (pedidoId, data) => api.post(`/pedidos/${pedidoId}/detalles/`, data),
     actualizarDetalle: (pedidoId, detalleId, data) => api.patch(`/pedidos/${pedidoId}/detalles/${detalleId}/`, data),

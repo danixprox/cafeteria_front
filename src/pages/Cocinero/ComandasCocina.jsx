@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import cocinaService from '../../services/cocinaService';
+import NotificacionesOperativasPanel from '../../Components/NotificacionesOperativasPanel';
+import useNotificacionesOperativas from '../../hooks/useNotificacionesOperativas';
 
 const estadosConfig = {
   pendiente: { label: 'Pendiente', bg: 'bg-amber-100', text: 'text-amber-800' },
@@ -39,6 +41,7 @@ const ComandasCocina = () => {
   const [accionLoading, setAccionLoading] = useState(false);
   const [mensaje, setMensaje] = useState(null);
   const [error, setError] = useState('');
+  const notificaciones = useNotificacionesOperativas();
 
   const cargarComandas = async (selectedId = null) => {
     setLoading(true);
@@ -85,6 +88,7 @@ const ComandasCocina = () => {
       const successText = response.data?.message || (accion === 'iniciar' ? 'La comanda pasó a En preparación.' : 'La comanda fue marcada como Lista.');
       setMensaje({ type: 'success', text: successText });
       await cargarComandas(id);
+      await notificaciones.cargar();
     } catch (err) {
       const texto = getErrorMessage(err);
       setError(texto);
@@ -155,7 +159,16 @@ const ComandasCocina = () => {
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-6 xl:grid-cols-[0.7fr_1.05fr_0.9fr]">
+        <NotificacionesOperativasPanel
+          notificaciones={notificaciones.notificaciones}
+          noLeidas={notificaciones.noLeidas}
+          cargando={notificaciones.cargando}
+          onActualizar={notificaciones.cargar}
+          onLeer={notificaciones.marcarLeida}
+          titulo="Entrada de cocina"
+          descripcion="Nuevos pedidos enviados por check-in o por el mesero."
+        />
         <section className="space-y-4">
           {loading ? (
             <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-sm text-slate-500">Cargando comandas...</div>
@@ -178,6 +191,10 @@ const ComandasCocina = () => {
                   </div>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-3xl bg-amber-50 p-4 sm:col-span-2">
+                      <p className="text-xs uppercase tracking-[0.35em] text-amber-600">Cliente</p>
+                      <p className="mt-2 font-semibold text-slate-900">{comanda.cliente?.nombre || 'Cliente presencial'}</p>
+                    </div>
                     <div className="rounded-3xl bg-slate-50 p-4">
                       <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Sala</p>
                       <p className="mt-2 font-semibold text-slate-900">{comanda.sala}</p>
@@ -218,6 +235,10 @@ const ComandasCocina = () => {
               </div>
 
               <div className="mt-6 grid gap-4">
+                <div className="rounded-3xl bg-amber-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.35em] text-amber-600">Cliente</p>
+                  <p className="mt-2 font-semibold text-slate-900">{selectedComanda.cliente?.nombre || 'Cliente presencial'}</p>
+                </div>
                 <div className="rounded-3xl bg-slate-50 p-4">
                   <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Sala / Mesa</p>
                   <p className="mt-2 font-semibold text-slate-900">{selectedComanda.sala} · {selectedComanda.mesa}</p>

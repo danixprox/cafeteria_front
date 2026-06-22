@@ -59,6 +59,11 @@ const CardPedido = ({ pedido, onRecargar }) => {
         </div>
       </div>
 
+      <div className="mx-5 mb-3 rounded-2xl bg-amber-50 px-4 py-3 ring-1 ring-amber-100">
+        <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Cliente</p>
+        <p className="mt-1 font-semibold text-slate-900">{pedido.cliente_nombre || 'Cliente presencial'}</p>
+      </div>
+
       {/* Productos */}
       <div className="px-5 mb-3">
         <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Productos</p>

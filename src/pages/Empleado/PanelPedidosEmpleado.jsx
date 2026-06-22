@@ -7,6 +7,7 @@ import SelectorMesas from './SelectorMesas';
 import CatalogoProductos from './CatalogoProductos';
 import ResumenPedido from './ResumenPedido';
 import NotaVentaModal from './NotaVentaModal';
+import ClientePedidoSelector from '../../Components/ClientePedidoSelector';
 
 const PanelPedidosEmpleado = () => {
   const [paso, setPaso] = useState('salas'); // 'salas' | 'mesas' | 'catalogo'
@@ -26,6 +27,10 @@ const PanelPedidosEmpleado = () => {
   const [pagoInfo, setPagoInfo] = useState(null);
   const [notaVenta, setNotaVenta] = useState(null);
   const [procesandoAccionPago, setProcesandoAccionPago] = useState(false);
+  const [clientePedido, setClientePedido] = useState({
+    cliente_id: null,
+    nombre_cliente: 'Cliente presencial',
+  });
 
   // Cargar salas y productos al montar
   useEffect(() => {
@@ -109,6 +114,7 @@ const PanelPedidosEmpleado = () => {
     setMesaSeleccionada(mesa);
     setCarrito({});
     setPedidoActivo(null);
+    setClientePedido({ cliente_id: null, nombre_cliente: 'Cliente presencial' });
     setError('');
 
     if (mesa.estado === 'disponible') {
@@ -125,7 +131,7 @@ const PanelPedidosEmpleado = () => {
             const initRes = await finanzasService.iniciarPedidoMesa(mesa.id);
             actualizarCarritoDesdePedido(initRes.data);
             setPaso('catalogo');
-          } catch (initErr) {
+          } catch {
             mostrarError('Error al iniciar pedido en el backend');
           }
         } else {
@@ -142,7 +148,7 @@ const PanelPedidosEmpleado = () => {
     setCargando(true);
     setError('');
     try {
-      const res = await finanzasService.iniciarPedidoMesa(mesaSeleccionada.id);
+      const res = await finanzasService.iniciarPedidoMesa(mesaSeleccionada.id, clientePedido);
       actualizarCarritoDesdePedido(res.data);
       setMesaSeleccionada(prev => ({ ...prev, estado: 'ocupada' }));
 
@@ -486,17 +492,24 @@ const PanelPedidosEmpleado = () => {
 
       {!cargando && paso === 'catalogo' && (
         mesaSeleccionada?.estado === 'disponible' ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-slate-50 border border-dashed border-slate-200 rounded-[2rem] max-w-lg mx-auto">
-            <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 text-2xl mb-4">🪑</div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">Mesa libre: {mesaSeleccionada.nombre}</h3>
-            <p className="text-sm text-slate-500 mb-6">Esta mesa no tiene una atención activa de mesero. Inicie la atención para ocupar la mesa y empezar a registrar productos.</p>
-            <button
-              onClick={handleIniciarAtencion}
+          <div className="mx-auto grid max-w-4xl gap-5 lg:grid-cols-[1fr_0.9fr]">
+            <ClientePedidoSelector
+              value={clientePedido}
+              onChange={setClientePedido}
               disabled={cargando}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg shadow-emerald-100 flex items-center gap-2"
-            >
-              🚀 Iniciar atención / Ocupar mesa
-            </button>
+            />
+            <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-600">🪑</div>
+              <h3 className="mb-2 text-xl font-bold text-slate-800">Mesa libre: {mesaSeleccionada.nombre}</h3>
+              <p className="mb-6 text-sm text-slate-500">Identifica al cliente e inicia la atención para registrar productos.</p>
+              <button
+                onClick={handleIniciarAtencion}
+                disabled={cargando || (!clientePedido.cliente_id && !clientePedido.nombre_cliente.trim())}
+                className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 font-bold text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                🚀 Iniciar atención / Ocupar mesa
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -645,7 +658,7 @@ const PanelPedidosEmpleado = () => {
         </div>
       )}
 
-      {false && notaVenta && (
+      {notaVenta && typeof window === 'undefined' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl border border-slate-100">
             <h3 className="text-xl font-black text-slate-900 text-center mb-2">
