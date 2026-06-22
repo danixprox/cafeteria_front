@@ -9,6 +9,7 @@ import {
 const ControlAsistencia = () => {
 
     const [reservas, setReservas] = useState([]);
+    const [mensaje, setMensaje] = useState('');
 
     const cargarReservas = async () => {
 
@@ -32,21 +33,28 @@ const ControlAsistencia = () => {
     };
 
     cargar();
-
+    const intervalo = setInterval(cargar, 30000);
+    return () => clearInterval(intervalo);
 }, []);
 
     const handleCheckin = async (id) => {
-
-        await realizarCheckin(id);
-
-        cargarReservas();
+        try {
+            await realizarCheckin(id);
+            setMensaje('Check-in realizado correctamente.');
+            cargarReservas();
+        } catch (error) {
+            setMensaje(error.response?.data?.error || 'No se pudo realizar el check-in.');
+        }
     };
 
     const handleNoAsistio = async (id) => {
-
-        await marcarNoAsistio(id);
-
-        cargarReservas();
+        try {
+            await marcarNoAsistio(id);
+            setMensaje('Reserva marcada como no asistió.');
+            cargarReservas();
+        } catch (error) {
+            setMensaje(error.response?.data?.error || 'No se pudo actualizar la reserva.');
+        }
     };
 
     return (
@@ -66,6 +74,11 @@ const ControlAsistencia = () => {
             </div>
 
             <div className="grid gap-5">
+                {mensaje && (
+                    <div className="rounded-xl border border-slate-200 bg-white p-4 font-semibold text-slate-700">
+                        {mensaje}
+                    </div>
+                )}
 
                 {reservas.length === 0 && (
 
@@ -115,7 +128,9 @@ const ControlAsistencia = () => {
 
                                 <button
                                     onClick={() => handleCheckin(r.id)}
-                                    className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg transition"
+                                    disabled={!r.puede_hacer_checkin}
+                                    title={r.mensaje_checkin || ''}
+                                    className="bg-green-600 hover:bg-green-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white px-5 py-2 rounded-lg transition"
                                 >
                                     Check-In
                                 </button>

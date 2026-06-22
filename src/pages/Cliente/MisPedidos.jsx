@@ -4,9 +4,9 @@ import { editarPedidoActual, obtenerPedidosActuales } from '../../services/histo
 import { productosService } from '../../services/productosService';
 
 const estadoConfig = {
-  pendiente: ['Pendiente', 'bg-slate-100 text-slate-700'],
-  confirmado: ['Confirmado', 'bg-amber-100 text-amber-700'],
-  en_preparacion: ['En preparacion', 'bg-indigo-100 text-indigo-700'],
+  pendiente: ['Registrado', 'bg-slate-100 text-slate-700'],
+  confirmado: ['En cola', 'bg-amber-100 text-amber-700'],
+  en_preparacion: ['En preparación', 'bg-indigo-100 text-indigo-700'],
   lista: ['Listo para recoger', 'bg-emerald-100 text-emerald-700'],
 };
 
@@ -16,10 +16,10 @@ const Badge = ({ estado }) => {
 };
 
 const estadoTexto = {
-  pendiente: 'Tu pedido fue registrado y esta esperando confirmacion.',
-  confirmado: 'Tu pedido fue recibido. Aun puedes editarlo si no paso el limite.',
-  en_preparacion: 'Cocina ya esta preparando tu pedido. La edicion esta cerrada.',
-  lista: 'Tu pedido esta listo.',
+  pendiente: 'Tu pedido fue registrado y está esperando confirmación.',
+  confirmado: 'Tu pedido está en cola de cocina.',
+  en_preparacion: 'Cocina está preparando tu pedido.',
+  lista: 'Tu pedido está listo para recoger.',
 };
 
 const toNumber = (value) => Number.parseFloat(value || 0);

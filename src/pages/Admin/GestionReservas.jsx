@@ -28,6 +28,11 @@ const GestionReservas = () => {
   const [loading, setLoading]   = useState(true);
   const [msg, setMsg]           = useState({ tipo: '', texto: '' });
 
+  function mostrarMsg(tipo, texto) {
+    setMsg({ tipo, texto });
+    setTimeout(() => setMsg({ tipo: '', texto: '' }), 6000);
+  }
+
   // ── Cargar reservas ──────────────────────────────────────────────────────
   const cargarReservas = () => {
     setLoading(true);
@@ -42,14 +47,16 @@ const GestionReservas = () => {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { cargarReservas(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const cargaInicial = setTimeout(cargarReservas, 0);
+    const intervalo = setInterval(cargarReservas, 30000);
+    return () => {
+      clearTimeout(cargaInicial);
+      clearInterval(intervalo);
+    };
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Feedback ─────────────────────────────────────────────────────────────
-  const mostrarMsg = (tipo, texto) => {
-    setMsg({ tipo, texto });
-    setTimeout(() => setMsg({ tipo: '', texto: '' }), 6000);
-  };
-
   const armarMsg = (data, accion) => {
     let texto = data?.mensaje || `${accion} correctamente.`;
     if (data?.preorden_cancelada)
@@ -201,7 +208,9 @@ const GestionReservas = () => {
                         <>
                           <button
                             onClick={() => handleCheckin(r.id)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-bold"
+                            disabled={!r.puede_hacer_checkin}
+                            title={r.mensaje_checkin || ''}
+                            className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg text-sm font-bold"
                           >
                             Check-in
                           </button>
@@ -211,6 +220,11 @@ const GestionReservas = () => {
                           >
                             Cancelar
                           </button>
+                          {!r.puede_hacer_checkin && r.mensaje_checkin && (
+                            <span className="basis-full text-xs font-semibold text-amber-700">
+                              {r.mensaje_checkin}
+                            </span>
+                          )}
                         </>
                       )}
 
