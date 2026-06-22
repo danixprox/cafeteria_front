@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { salasService } from '../../services/salasService';
 import { productosService } from '../../services/productosService';
 import { finanzasService } from '../../services/finanzasService';
+import pedidosService from '../../services/pedidosService';
 import SelectorSalas from './SelectorSalas';
 import SelectorMesas from './SelectorMesas';
 import CatalogoProductos from './CatalogoProductos';
@@ -244,6 +245,41 @@ const PanelPedidosEmpleado = () => {
       setMesas(Array.isArray(mesasRes.data) ? mesasRes.data : []);
     } catch (err) {
       const msg = err.response?.data?.error || 'Error al confirmar el pedido';
+      mostrarError(msg);
+    } finally {
+      setProcesandoAccionPago(false);
+    }
+  };
+
+  const handleAplicarPromocion = async (codigo) => {
+    if (!pedidoActivo) return;
+    setProcesandoAccionPago(true);
+    setError('');
+    try {
+      const res = await pedidosService.aplicarPromocion(pedidoActivo.id, codigo);
+      actualizarCarritoDesdePedido(res.data);
+      setExito('Promoción aplicada correctamente');
+      setTimeout(() => setExito(''), 3000);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al aplicar la promoción';
+      mostrarError(msg);
+      throw err;
+    } finally {
+      setProcesandoAccionPago(false);
+    }
+  };
+
+  const handleQuitarPromocion = async () => {
+    if (!pedidoActivo) return;
+    setProcesandoAccionPago(true);
+    setError('');
+    try {
+      const res = await pedidosService.quitarPromocion(pedidoActivo.id);
+      actualizarCarritoDesdePedido(res.data);
+      setExito('Promoción quitada correctamente');
+      setTimeout(() => setExito(''), 3000);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al quitar la promoción';
       mostrarError(msg);
     } finally {
       setProcesandoAccionPago(false);
@@ -529,6 +565,8 @@ const PanelPedidosEmpleado = () => {
               pedidoActivo={pedidoActivo}
               onPagar={handlePagarPedido}
               pagando={procesandoAccionPago}
+              onAplicarPromocion={handleAplicarPromocion}
+              onQuitarPromocion={handleQuitarPromocion}
             />
           </div>
         )

@@ -23,6 +23,7 @@ import AdminCategorias from '../../pages/Admin/AdminCategorias';
 import AdminProductos from '../../pages/Admin/AdminProductos';
 import AdminHistorialPedidos from '../../pages/Admin/HistorialPedidos';
 import CierreCaja from '../../pages/Admin/CierreCaja';
+import GestionPromociones from '../../pages/Admin/GestionPromociones';
 const AdminPage = () => {
   const navigate = useNavigate();
 
@@ -833,6 +834,10 @@ handleLogout={handleLogout}
 
 {vista === "productos" && (
   <AdminProductos />
+)}
+
+{vista === "promociones" && (
+  <GestionPromociones />
 )}
 
        </main>

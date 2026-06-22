@@ -243,6 +243,41 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
     }
   };
 
+  const handleAplicarPromocion = async (codigo) => {
+    if (!pedidoActivo) return;
+    setProcesandoAccionPago(true);
+    setError('');
+    try {
+      const res = await pedidosService.aplicarPromocion(pedidoActivo.id, codigo);
+      actualizarCarritoDesdePedido(res.data);
+      setExito('Promoción aplicada correctamente');
+      setTimeout(() => setExito(''), 3000);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al aplicar la promoción';
+      mostrarError(msg);
+      throw err;
+    } finally {
+      setProcesandoAccionPago(false);
+    }
+  };
+
+  const handleQuitarPromocion = async () => {
+    if (!pedidoActivo) return;
+    setProcesandoAccionPago(true);
+    setError('');
+    try {
+      const res = await pedidosService.quitarPromocion(pedidoActivo.id);
+      actualizarCarritoDesdePedido(res.data);
+      setExito('Promoción quitada correctamente');
+      setTimeout(() => setExito(''), 3000);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al quitar la promoción';
+      mostrarError(msg);
+    } finally {
+      setProcesandoAccionPago(false);
+    }
+  };
+
   const handlePagarPedido = async () => {
     if (!pedidoActivo) return;
     setProcesandoAccionPago(true);
@@ -508,6 +543,8 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
               pedidoActivo={pedidoActivo}
               onPagar={handlePagarPedido}
               pagando={procesandoAccionPago}
+              onAplicarPromocion={handleAplicarPromocion}
+              onQuitarPromocion={handleQuitarPromocion}
             />
           </div>
         )

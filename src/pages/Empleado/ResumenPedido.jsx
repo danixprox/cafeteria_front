@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const ResumenPedido = ({
   carrito,
@@ -11,7 +11,21 @@ const ResumenPedido = ({
   pedidoActivo,
   onPagar,
   pagando,
+  onAplicarPromocion,
+  onQuitarPromocion,
 }) => {
+  const [codigoPromo, setCodigoPromo] = useState('');
+
+  const handlePromoSubmit = async (e) => {
+    e.preventDefault();
+    if (!codigoPromo.trim()) return;
+    try {
+      await onAplicarPromocion(codigoPromo.trim());
+      setCodigoPromo('');
+    } catch (err) {
+      // Keep code in input on error for correction
+    }
+  };
   const items = Object.values(carrito);
   const itemsConfirmados = items.filter(item => item.confirmado);
   const itemsPendientes = items.filter(item => !item.confirmado);
@@ -153,6 +167,55 @@ const ResumenPedido = ({
           )}
         </div>
       )}
+      {/* Sección de Promoción */}
+      {pedidoActivo && (
+        <div className="border-t border-slate-200 pt-4">
+          {pedidoActivo.promocion ? (
+            <div className="flex items-center justify-between gap-3 rounded-2xl bg-emerald-50/50 border border-emerald-200/60 p-3.5 flex-wrap">
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">🏷️</span>
+                <div>
+                  <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">
+                    PROMO: {pedidoActivo.promocion_codigo}
+                  </p>
+                  <p className="text-[10px] text-emerald-600 font-medium">
+                    {pedidoActivo.promocion_nombre}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onQuitarPromocion}
+                disabled={totalPendientePagar <= 0 || confirmando || pagando}
+                className="rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-1.5 text-xs transition duration-200 flex items-center gap-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Quitar
+              </button>
+            </div>
+          ) : (
+            <form
+              onSubmit={handlePromoSubmit}
+              className="flex items-center gap-2"
+            >
+              <input
+                type="text"
+                placeholder="Código de descuento"
+                value={codigoPromo}
+                onChange={(e) => setCodigoPromo(e.target.value.toUpperCase())}
+                disabled={totalPendientePagar <= 0 || confirmando || pagando}
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed transition duration-200"
+              />
+              <button
+                type="submit"
+                disabled={!codigoPromo.trim() || totalPendientePagar <= 0 || confirmando || pagando}
+                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 text-xs transition duration-200 active:scale-95 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
+              >
+                Aplicar
+              </button>
+            </form>
+          )}
+        </div>
+      )}
 
       {/* Totales y botones */}
       <div className="mt-auto border-t border-slate-200 pt-4 space-y-3">
@@ -161,10 +224,22 @@ const ResumenPedido = ({
             <span className="text-xs font-medium">Subtotal general</span>
             <span className="text-sm font-semibold">Bs. {total.toFixed(2)}</span>
           </div>
-          {pedidoActivo && (
+          {pedidoActivo && parseFloat(pedidoActivo.descuento || 0) > 0 && (
+            <>
+              <div className="flex items-center justify-between text-emerald-600 font-medium">
+                <span className="text-xs">Descuento</span>
+                <span className="text-sm">- Bs. {parseFloat(pedidoActivo.descuento).toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-700 font-medium">
+                <span className="text-xs">Total con descuento</span>
+                <span className="text-sm">Bs. {parseFloat(pedidoActivo.total).toFixed(2)}</span>
+              </div>
+            </>
+          )}
+          {pedidoActivo && parseFloat(pedidoActivo.total_pagado || 0) > 0 && (
             <div className="flex items-center justify-between text-slate-600">
               <span className="text-xs font-medium">Total pagado</span>
-              <span className="text-sm font-semibold text-emerald-600">Bs. {parseFloat(pedidoActivo.total_pagado || 0).toFixed(2)}</span>
+              <span className="text-sm font-semibold text-emerald-600">Bs. {parseFloat(pedidoActivo.total_pagado).toFixed(2)}</span>
             </div>
           )}
           <div className="flex items-center justify-between border-t border-dashed border-slate-200 pt-2">
