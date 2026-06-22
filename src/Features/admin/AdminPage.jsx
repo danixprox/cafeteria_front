@@ -22,6 +22,7 @@ import GestionNotificaciones from '../../pages/Admin/GestionNotificaciones';
 import AdminCategorias from '../../pages/Admin/AdminCategorias';
 import AdminProductos from '../../pages/Admin/AdminProductos';
 import AdminHistorialPedidos from '../../pages/Admin/HistorialPedidos';
+import GenerarReporte from '../../pages/Admin/GenerarReporte';
 const AdminPage = () => {
   const navigate = useNavigate();
 
@@ -905,6 +906,10 @@ const AdminPage = () => {
 
 {vista === "notificaciones" && (
   <GestionNotificaciones />
+)}
+
+{vista === "reportes" && (
+  <GenerarReporte />
 )}
 
 {vista === "categorias" && (
