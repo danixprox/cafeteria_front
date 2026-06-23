@@ -24,6 +24,7 @@ import AdminProductos from '../../pages/Admin/AdminProductos';
 import AdminHistorialPedidos from '../../pages/Admin/HistorialPedidos';
 import CierreCaja from '../../pages/Admin/CierreCaja';
 import GestionPromociones from '../../pages/Admin/GestionPromociones';
+import GenerarReporte from '../../pages/Admin/GenerarReporte';
 const AdminPage = () => {
   const navigate = useNavigate();
 
@@ -837,6 +838,10 @@ handleLogout={handleLogout}
 
 {vista === "promociones" && (
   <GestionPromociones />
+)}
+
+{vista === "reportes" && (
+  <GenerarReporte />
 )}
 
        </main>
