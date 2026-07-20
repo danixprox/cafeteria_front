@@ -110,6 +110,9 @@ const CardPreorden = ({ preorden }) => {
                     {d.producto_categoria}
                   </span>
                 )}
+                {d.observaciones && (
+                  <p className="mt-1 text-xs font-medium text-slate-500">Nota: {d.observaciones}</p>
+                )}
               </div>
               <div className="text-right shrink-0">
                 <p className="font-semibold text-slate-900">Bs. {parseFloat(d.subtotal).toFixed(2)}</p>

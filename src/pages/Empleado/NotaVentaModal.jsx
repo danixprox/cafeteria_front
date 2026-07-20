@@ -84,7 +84,14 @@ const NotaVentaModal = ({ nota, onClose }) => {
               {productos.map((item, index) => (
                 <tr key={`${item.producto}-${index}`} className="border-t border-slate-100">
                   <td className="px-3 py-3">{item.cantidad}</td>
-                  <td className="px-3 py-3 text-left">{item.producto}</td>
+                  <td className="px-3 py-3 text-left">
+                    <div className="font-semibold">{item.producto}</div>
+                    {item.observaciones && (
+                      <div className="mt-1 text-xs font-medium text-slate-500">
+                        Nota: {item.observaciones}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-3 py-3">{money(item.precio)}</td>
                   <td className="px-3 py-3 font-semibold">{money(item.total)}</td>
                 </tr>

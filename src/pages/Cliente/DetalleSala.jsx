@@ -170,9 +170,18 @@ const DetalleSala = () => {
                 nombre: producto.nombre,
                 precio: producto.precio,
                 cantidad,
-                subtotal: cantidad * producto.precio
+                subtotal: cantidad * producto.precio,
+                observaciones: ''
             }]);
         }
+    };
+
+    const actualizarObservacionesCarrito = (idProducto, observaciones) => {
+        setCarrito(carrito.map(item =>
+            item.id === idProducto
+                ? { ...item, observaciones: (observaciones || '').slice(0, 50) }
+                : item
+        ));
     };
 
     const disminuirCantidad = (idProducto) => {
@@ -211,7 +220,7 @@ const DetalleSala = () => {
                 hora_inicio: horarioSeleccionado.hora_inicio,
                 hora_fin: horarioSeleccionado.hora_fin,
                 cantidad_personas: parseInt(cantidadPersonas),
-                productos: carrito.map(c => ({ id: c.id, cantidad: c.cantidad })),
+                productos: carrito.map(c => ({ id: c.id, cantidad: c.cantidad, observaciones: c.observaciones || '' })),
                 frontend_origin: window.location.origin
             });
             setExito('🎉 ¡Reserva iniciada! Redirigiendo al pago de Stripe...');
@@ -469,7 +478,8 @@ const DetalleSala = () => {
                                 </p>
                                 <div className="space-y-1 max-h-28 overflow-y-auto">
                                     {carrito.map(item => (
-                                        <div key={item.id} className="flex items-center justify-between gap-2 text-xs">
+                                        <div key={item.id} className="rounded-xl bg-white/70 p-2 text-xs">
+                                            <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 flex-1 min-w-0">
                                                 <span className="font-semibold text-slate-700 truncate">{item.nombre}</span>
                                             </div>
@@ -490,9 +500,17 @@ const DetalleSala = () => {
                                                     ✕
                                                 </button>
                                             </div>
-                                            <span className="text-indigo-700 font-bold shrink-0 w-16 text-right">
-                                                Bs {item.subtotal.toFixed(2)}
-                                            </span>
+                                                <span className="text-indigo-700 font-bold shrink-0 w-16 text-right">
+                                                    Bs {item.subtotal.toFixed(2)}
+                                                </span>
+                                            </div>
+                                            <input
+                                                value={item.observaciones || ''}
+                                                onChange={(e) => actualizarObservacionesCarrito(item.id, e.target.value)}
+                                                maxLength={50}
+                                                placeholder="Personalización: sin azúcar, poca leche..."
+                                                className="mt-2 w-full rounded-lg border border-indigo-100 bg-white px-2 py-1.5 text-[11px] text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                                            />
                                         </div>
                                     ))}
                                 </div>

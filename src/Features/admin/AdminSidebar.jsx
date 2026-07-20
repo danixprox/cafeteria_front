@@ -17,6 +17,7 @@ const menuItems = [
   { id: 'salas', label: 'Gestion de Salas', icon: <DoorOpen size={18} /> },
   { id: 'reservas', label: 'Gestion de Reservas', icon: <CalendarDays size={18} /> },
   { id: 'notificaciones', label: 'Notificaciones', icon: <Bell size={18} /> },
+  { id: 'opiniones', label: 'Opiniones', icon: <span className="text-lg">⭐</span> },
   { id: 'reportes', label: 'Generar Reporte', icon: <ClipboardCheck size={18} /> },
   { id: 'cierre_caja', label: 'Cierre de Caja', icon: <WalletCards size={18} /> },
   { id: 'categorias', label: 'Gestion de Categorias', icon: <ClipboardCheck size={18} /> },

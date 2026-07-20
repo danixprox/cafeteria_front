@@ -222,6 +222,9 @@ const AdminHistorialPedidos = () => {
                 <div>
                   <div className="text-sm font-medium">{it.producto}</div>
                   <div className="text-xs text-slate-500">{it.cantidad} x {it.precio_unitario}</div>
+                  {it.observaciones && (
+                    <div className="mt-1 text-xs font-medium text-slate-500">Nota: {it.observaciones}</div>
+                  )}
                 </div>
                 <div className="text-sm font-semibold">{it.subtotal}</div>
               </div>

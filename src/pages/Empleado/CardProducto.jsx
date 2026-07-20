@@ -4,9 +4,9 @@ const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const CardProducto = ({ producto, cantidadEnCarrito, onAgregar }) => {
   const [cantidad, setCantidad] = useState(1);
+  const [observaciones, setObservaciones] = useState('');
   const [error, setError] = useState('');
 
-  // stock_disponible viene del backend (stock - stock_reservado); fallback a stock
   const stockBase = producto.stock_disponible ?? producto.stock;
   const stockRestante = stockBase - cantidadEnCarrito;
   const agotado = stockRestante <= 0;
@@ -22,8 +22,9 @@ const CardProducto = ({ producto, cantidadEnCarrito, onAgregar }) => {
       setTimeout(() => setError(''), 3000);
       return;
     }
-    onAgregar(producto, cantidad);
+    onAgregar(producto, cantidad, observaciones.trim());
     setCantidad(1);
+    setObservaciones('');
     setError('');
   };
 
@@ -39,7 +40,6 @@ const CardProducto = ({ producto, cantidadEnCarrito, onAgregar }) => {
         ? 'border-slate-200 bg-slate-50 opacity-55'
         : 'border-slate-200 bg-white hover:border-amber-300 hover:shadow-sm'
     }`}>
-      {/* Imagen + info */}
       <div className="flex gap-3">
         {producto.imagen ? (
           <img
@@ -63,7 +63,6 @@ const CardProducto = ({ producto, cantidadEnCarrito, onAgregar }) => {
         </div>
       </div>
 
-      {/* Stock y controles */}
       <div className="mt-3">
         <p className={`mb-2 text-xs font-semibold ${
           agotado
@@ -78,40 +77,58 @@ const CardProducto = ({ producto, cantidadEnCarrito, onAgregar }) => {
         </p>
 
         {!agotado && (
-          <div className="flex items-center gap-2">
-            <div className="flex overflow-hidden rounded-xl border border-slate-200">
-              <button
-                onClick={() => cambiarCantidad(cantidad - 1)}
-                className="px-2.5 py-1 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
-              >
-                −
-              </button>
-              <input
-                type="number"
-                min={1}
-                max={stockRestante}
-                value={cantidad}
-                onChange={e => cambiarCantidad(parseInt(e.target.value) || 1)}
-                className="w-10 border-none py-1 text-center text-sm text-slate-900 outline-none"
+          <div className="space-y-2">
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold text-slate-500">
+                Personalización
+              </label>
+              <textarea
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value.slice(0, 50))}
+                maxLength={50}
+                rows={2}
+                placeholder="Ej: sin azúcar"
+                className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-100"
               />
+              <p className="mt-0.5 text-right text-[10px] text-slate-400">
+                {observaciones.length}/50
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex overflow-hidden rounded-xl border border-slate-200">
+                <button
+                  onClick={() => cambiarCantidad(cantidad - 1)}
+                  className="px-2.5 py-1 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  min={1}
+                  max={stockRestante}
+                  value={cantidad}
+                  onChange={e => cambiarCantidad(parseInt(e.target.value) || 1)}
+                  className="w-10 border-none py-1 text-center text-sm text-slate-900 outline-none"
+                />
+                <button
+                  onClick={() => cambiarCantidad(cantidad + 1)}
+                  className="px-2.5 py-1 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
+                >
+                  +
+                </button>
+              </div>
               <button
-                onClick={() => cambiarCantidad(cantidad + 1)}
-                className="px-2.5 py-1 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
+                onClick={handleAgregar}
+                className="flex-1 rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-amber-700"
               >
-                +
+                Agregar
               </button>
             </div>
-            <button
-              onClick={handleAgregar}
-              className="flex-1 rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-amber-700"
-            >
-              Agregar
-            </button>
           </div>
         )}
 
         {cantidadEnCarrito > 0 && (
-          <p className="mt-1 text-xs text-blue-600 font-medium">
+          <p className="mt-1 text-xs font-medium text-blue-600">
             {cantidadEnCarrito} en el pedido
           </p>
         )}

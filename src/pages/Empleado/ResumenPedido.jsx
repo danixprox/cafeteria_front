@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 const ResumenPedido = ({
   carrito,
   onActualizarCantidad,
+  onActualizarObservaciones,
   onEliminar,
   onConfirmar,
   confirmando,
@@ -26,6 +27,7 @@ const ResumenPedido = ({
       return;
     }
   };
+
   const items = Object.values(carrito);
   const itemsConfirmados = items.filter(item => item.confirmado);
   const itemsPendientes = items.filter(item => !item.confirmado);
@@ -42,16 +44,23 @@ const ResumenPedido = ({
 
   let motivoBloqueoPago = null;
   if (items.length === 0) {
-    motivoBloqueoPago = "El pedido está vacío";
+    motivoBloqueoPago = 'El pedido está vacío';
   } else if (tienePendientesConfirmar) {
-    motivoBloqueoPago = "Confirma los productos pendientes antes de realizar el pago";
+    motivoBloqueoPago = 'Confirma los productos pendientes antes de realizar el pago';
   } else if (totalPendientePagar <= 0) {
-    motivoBloqueoPago = "El pedido ya está totalmente pagado";
+    motivoBloqueoPago = 'El pedido ya está totalmente pagado';
   }
+
+  const renderNotaConfirmada = (item) => (
+    item.observaciones ? (
+      <p className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">
+        Nota: {item.observaciones}
+      </p>
+    ) : null
+  );
 
   return (
     <div className="sticky top-4 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-      {/* Header */}
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">
           Resumen del pedido
@@ -64,14 +73,12 @@ const ResumenPedido = ({
         )}
       </div>
 
-      {/* Líneas del carrito */}
       {items.length === 0 ? (
         <p className="py-6 text-center text-sm text-slate-400">
           No hay productos seleccionados
         </p>
       ) : (
-        <div className="space-y-4 overflow-y-auto max-h-[45vh] pr-1">
-          {/* Pendientes de confirmar */}
+        <div className="max-h-[45vh] space-y-4 overflow-y-auto pr-1">
           {itemsPendientes.length > 0 && (
             <div>
               <p className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-600">
@@ -100,8 +107,26 @@ const ResumenPedido = ({
                       Bs. {parseFloat(item.producto.precio).toFixed(2)} × {item.cantidad}
                     </p>
 
+                    <div className="mt-3">
+                      <label className="mb-1 block text-[11px] font-semibold text-slate-500">
+                        Personalización
+                      </label>
+                      <textarea
+                        defaultValue={item.observaciones || ''}
+                        maxLength={50}
+                        rows={2}
+                        placeholder="Ej: sin azúcar"
+                        onBlur={(e) => {
+                          const valor = e.target.value.trim();
+                          if (valor !== (item.observaciones || '')) {
+                            onActualizarObservaciones?.(item.producto.id, valor);
+                          }
+                        }}
+                        className="w-full resize-none rounded-xl border border-amber-100 bg-white px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                      />
+                    </div>
+
                     <div className="mt-2 flex items-center justify-between">
-                      {/* Controles de cantidad */}
                       <div className="flex overflow-hidden rounded-lg border border-slate-200 bg-white">
                         <button
                           onClick={() => onActualizarCantidad(item.producto.id, item.cantidad - 1)}
@@ -129,7 +154,6 @@ const ResumenPedido = ({
             </div>
           )}
 
-          {/* Confirmados */}
           {itemsConfirmados.length > 0 && (
             <div>
               <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -153,9 +177,10 @@ const ResumenPedido = ({
                     <p className="mt-1 text-xs text-slate-500">
                       Bs. {parseFloat(item.producto.precio).toFixed(2)} × {item.cantidad}
                     </p>
+                    {renderNotaConfirmada(item)}
 
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-xs text-slate-400 italic">Bloqueado</span>
+                      <span className="text-xs italic text-slate-400">Bloqueado</span>
                       <p className="text-sm font-bold text-slate-900">
                         Bs. {(parseFloat(item.producto.precio) * item.cantidad).toFixed(2)}
                       </p>
@@ -167,18 +192,18 @@ const ResumenPedido = ({
           )}
         </div>
       )}
-      {/* Sección de Promoción */}
+
       {pedidoActivo && (
         <div className="border-t border-slate-200 pt-4">
           {pedidoActivo.promocion ? (
-            <div className="flex items-center justify-between gap-3 rounded-2xl bg-emerald-50/50 border border-emerald-200/60 p-3.5 flex-wrap">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200/60 bg-emerald-50/50 p-3.5">
               <div className="flex items-center gap-2.5">
                 <span className="text-lg">🏷️</span>
                 <div>
-                  <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">
+                  <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">
                     PROMO: {pedidoActivo.promocion_codigo}
                   </p>
-                  <p className="text-[10px] text-emerald-600 font-medium">
+                  <p className="text-[10px] font-medium text-emerald-600">
                     {pedidoActivo.promocion_nombre}
                   </p>
                 </div>
@@ -187,28 +212,25 @@ const ResumenPedido = ({
                 type="button"
                 onClick={onQuitarPromocion}
                 disabled={totalPendientePagar <= 0 || confirmando || pagando}
-                className="rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-1.5 text-xs transition duration-200 flex items-center gap-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 rounded-xl bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 transition duration-200 hover:bg-red-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Quitar
               </button>
             </div>
           ) : (
-            <form
-              onSubmit={handlePromoSubmit}
-              className="flex items-center gap-2"
-            >
+            <form onSubmit={handlePromoSubmit} className="flex items-center gap-2">
               <input
                 type="text"
                 placeholder="Código de descuento"
                 value={codigoPromo}
                 onChange={(e) => setCodigoPromo(e.target.value.toUpperCase())}
                 disabled={totalPendientePagar <= 0 || confirmando || pagando}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed transition duration-200"
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-800 placeholder-slate-400 transition duration-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
               />
               <button
                 type="submit"
                 disabled={!codigoPromo.trim() || totalPendientePagar <= 0 || confirmando || pagando}
-                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 text-xs transition duration-200 active:scale-95 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white transition duration-200 hover:bg-emerald-700 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
               >
                 Aplicar
               </button>
@@ -217,8 +239,7 @@ const ResumenPedido = ({
         </div>
       )}
 
-      {/* Totales y botones */}
-      <div className="mt-auto border-t border-slate-200 pt-4 space-y-3">
+      <div className="mt-auto space-y-3 border-t border-slate-200 pt-4">
         <div className="space-y-1">
           <div className="flex items-center justify-between text-slate-600">
             <span className="text-xs font-medium">Subtotal general</span>
@@ -226,11 +247,11 @@ const ResumenPedido = ({
           </div>
           {pedidoActivo && parseFloat(pedidoActivo.descuento || 0) > 0 && (
             <>
-              <div className="flex items-center justify-between text-emerald-600 font-medium">
+              <div className="flex items-center justify-between font-medium text-emerald-600">
                 <span className="text-xs">Descuento</span>
                 <span className="text-sm">- Bs. {parseFloat(pedidoActivo.descuento).toFixed(2)}</span>
               </div>
-              <div className="flex items-center justify-between text-slate-700 font-medium">
+              <div className="flex items-center justify-between font-medium text-slate-700">
                 <span className="text-xs">Total con descuento</span>
                 <span className="text-sm">Bs. {parseFloat(pedidoActivo.total).toFixed(2)}</span>
               </div>
@@ -250,19 +271,17 @@ const ResumenPedido = ({
           </div>
         </div>
 
-        {/* Warning message if payment is blocked */}
         {motivoBloqueoPago && tienePendientesConfirmar && (
-          <p className="rounded-xl bg-amber-50 p-2.5 text-center text-xs font-medium text-amber-700 border border-amber-100">
+          <p className="rounded-xl border border-amber-100 bg-amber-50 p-2.5 text-center text-xs font-medium text-amber-700">
             ⚠ {motivoBloqueoPago}
           </p>
         )}
 
         <div className="flex flex-col gap-2">
-          {/* Botón Confirmar Pedido */}
           <button
             onClick={onConfirmar}
             disabled={!puedeConfirmar}
-            className={`w-full rounded-2xl py-3 text-sm font-bold transition flex items-center justify-center gap-2 ${
+            className={`flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition ${
               !puedeConfirmar
                 ? 'cursor-not-allowed bg-slate-200 text-slate-400'
                 : 'bg-emerald-600 text-white shadow-lg shadow-emerald-100 hover:bg-emerald-700'
@@ -271,11 +290,10 @@ const ResumenPedido = ({
             {confirmando ? 'Confirmando...' : 'Confirmar Pedido'}
           </button>
 
-          {/* Botón Pagar */}
           <button
             onClick={onPagar}
             disabled={!puedePagar}
-            className={`w-full rounded-2xl py-3 text-sm font-bold transition flex items-center justify-center gap-2 ${
+            className={`flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition ${
               !puedePagar
                 ? 'cursor-not-allowed bg-slate-200 text-slate-400'
                 : 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 hover:bg-indigo-700'

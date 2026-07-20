@@ -24,6 +24,8 @@ import AdminProductos from '../../pages/Admin/AdminProductos';
 import AdminHistorialPedidos from '../../pages/Admin/HistorialPedidos';
 import CierreCaja from '../../pages/Admin/CierreCaja';
 import GestionPromociones from '../../pages/Admin/GestionPromociones';
+import GestionOpiniones from '../../pages/Admin/GestionOpiniones';
+import GenerarReporte from '../../pages/Admin/GenerarReporte';
 const AdminPage = () => {
   const navigate = useNavigate();
 
@@ -821,6 +823,14 @@ handleLogout={handleLogout}
 
 {vista === "notificaciones" && (
   <GestionNotificaciones />
+)}
+
+{vista === "opiniones" && (
+  <GestionOpiniones />
+)}
+
+{vista === "reportes" && (
+  <GenerarReporte />
 )}
 
 {vista === "cierre_caja" && (

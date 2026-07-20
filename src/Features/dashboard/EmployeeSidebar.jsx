@@ -46,6 +46,12 @@ const EmployeeSidebar = ({ vista, setVista, handleLogout }) => {
         },
 
         {
+            id: 'opiniones',
+            label: 'Opiniones',
+            icon: '⭐'
+        },
+
+        {
             id: 'pedidos',
             label: 'Pedidos',
             icon: '🧾'

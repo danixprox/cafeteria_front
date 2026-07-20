@@ -7,6 +7,7 @@ import EmployeeSidebar from "./EmployeeSidebar";
 import PanelPedidosEmpleado from '../../pages/Empleado/PanelPedidosEmpleado';
 import PedidosPage from '../../pages/Empleado/PedidosPage';
 import NotaVentaModal from '../../pages/Empleado/NotaVentaModal';
+import OpinionesLectura from '../../pages/Empleado/OpinionesLectura';
 
 const EmployeePage = () => {
   const navigate = useNavigate();
@@ -339,6 +340,11 @@ const EmployeePage = () => {
         {/* GESTION RESERVAS */}
         {vista === "reservas" && (
           <GestionReservas />
+        )}
+
+        {/* OPINIONES */}
+        {vista === "opiniones" && (
+          <OpinionesLectura />
         )}
 
         {/* PEDIDOS - vista completa desde sidebar */}

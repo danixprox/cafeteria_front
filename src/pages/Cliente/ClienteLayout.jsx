@@ -94,6 +94,12 @@ const ClienteLayout = () => {
     },
 
     {
+        path: '/cliente/opiniones',
+        label: 'Opiniones',
+        icon: '⭐'
+    },
+
+    {
         path: '/cliente/perfil',
         label: 'Mi Perfil',
         icon: '👤'

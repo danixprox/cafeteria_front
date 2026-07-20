@@ -55,6 +55,7 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
       producto: det.producto_nombre,
       precio: parseFloat(det.precio_unitario).toFixed(2),
       total: parseFloat(det.subtotal).toFixed(2),
+      observaciones: det.observaciones || '',
     }));
     const total = parseFloat(pedido?.total_pendiente || pedido?.total || 0);
 
@@ -86,7 +87,8 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
           },
           cantidad: det.cantidad,
           detalleId: det.id,
-          confirmado: det.confirmado
+          confirmado: det.confirmado,
+          observaciones: det.observaciones || ''
         };
       });
     }
@@ -161,7 +163,7 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
     }
   };
 
-  const handleAgregarAlCarrito = async (producto, cantidad) => {
+  const handleAgregarAlCarrito = async (producto, cantidad, observaciones = '') => {
     if (!pedidoActivo) {
       mostrarError('Debe iniciar la atención de la mesa antes de agregar productos');
       return;
@@ -171,6 +173,7 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
       const res = await finanzasService.agregarDetalle(pedidoActivo.id, {
         producto_id: producto.id,
         cantidad: cantidad,
+        observaciones,
       });
       actualizarCarritoDesdePedido(res.data);
 
@@ -202,6 +205,22 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
       setProductos(Array.isArray(prodRes.data) ? prodRes.data : []);
     } catch (err) {
       const msg = err.response?.data?.error || 'Error al actualizar la cantidad';
+      mostrarError(msg);
+    }
+  };
+
+  const handleActualizarObservaciones = async (productoId, observaciones) => {
+    const item = carrito[productoId];
+    if (!item || !pedidoActivo || item.confirmado) return;
+
+    setError('');
+    try {
+      const res = await finanzasService.actualizarDetalle(pedidoActivo.id, item.detalleId, {
+        observaciones: (observaciones || '').slice(0, 50)
+      });
+      actualizarCarritoDesdePedido(res.data);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Error al actualizar la personalización';
       mostrarError(msg);
     }
   };
@@ -536,6 +555,7 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
             <ResumenPedido
               carrito={carrito}
               onActualizarCantidad={handleActualizarCantidad}
+              onActualizarObservaciones={handleActualizarObservaciones}
               onEliminar={handleEliminarDelCarrito}
               onConfirmar={handleConfirmarPedido}
               confirmando={procesandoAccionPago}

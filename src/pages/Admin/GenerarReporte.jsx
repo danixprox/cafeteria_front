@@ -205,6 +205,53 @@ const normalizeBackendCards = (payload) => {
   ];
 };
 
+const normalizeDynamicCards = (payload) => {
+  if (!payload || typeof payload !== 'object') return null;
+  const totales = payload.totales || {};
+  const tipo = payload.tipo || 'ventas';
+
+  switch (tipo) {
+    case 'ingresos':
+      return [
+        { title: 'Ingresos confirmados', value: `Bs ${Number(totales.ingresos_confirmados || 0).toLocaleString('es-BO')}`, detail: 'Pagos exitosos del periodo', icon: WalletCards, tone: 'indigo' },
+        { title: 'Pagos registrados', value: `${totales.cantidad_pagos || 0}`, detail: 'Cantidad de pagos', icon: CreditCard, tone: 'blue' }
+      ];
+    case 'reservas':
+      return [
+        { title: 'Reservas', value: `${totales.reservas || 0}`, detail: 'Total del rango', icon: CalendarDays, tone: 'blue' },
+        { title: 'Reservas activas', value: `${totales.reservas_activas || 0}`, detail: 'Reservas en estado activo', icon: CheckCircle2, tone: 'green' }
+      ];
+    case 'preordenes':
+      return [
+        { title: 'Preordenes', value: `${totales.preordenes || 0}`, detail: 'Preordenes del periodo', icon: CheckCircle2, tone: 'purple' },
+        { title: 'Demanda anticipada', value: `${totales.demanda_anticipada || 0}`, detail: 'Preordenes pendientes', icon: TrendingUp, tone: 'orange' }
+      ];
+    case 'ocupacion':
+      return [
+        { title: 'Ocupacion promedio', value: `${Number(totales.ocupacion_promedio || 0).toLocaleString('es-BO')}%`, detail: 'Promedio de salas', icon: Utensils, tone: 'green' }
+      ];
+    case 'inventario':
+      return [
+        { title: 'Productos criticos', value: `${totales.productos_criticos || 0}`, detail: 'Stock bajo umbral', icon: PackageSearch, tone: 'orange' }
+      ];
+    default:
+      return [
+        { title: 'Ventas reales', value: `${totales.cantidad_pedidos || 0}`, detail: 'Pedidos del periodo', icon: BarChart3, tone: 'green' },
+        { title: 'Total vendido', value: `Bs ${Number(totales.total_vendido || 0).toLocaleString('es-BO')}`, detail: 'Monto acumulado', icon: WalletCards, tone: 'indigo' }
+      ];
+  }
+};
+
+const normalizeDetailRows = (payload) => {
+  if (!payload || typeof payload !== 'object' || !Array.isArray(payload.filas)) return null;
+  const headers = payload.columnas || [];
+  return payload.filas.map((row) => headers.map((column) => {
+    const value = row?.[column];
+    if (typeof value === 'number') return value.toLocaleString('es-BO');
+    return value ?? '';
+  }));
+};
+
 const maxValue = (data) => Math.max(...data.map((item) => item.value), 1);
 
 const ChartCard = ({ title, subtitle, data, variant = 'bar' }) => {
@@ -351,6 +398,8 @@ const GenerarReporte = () => {
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
   const [reporteEstatico, setReporteEstatico] = useState(null);
+  const [reporteDinamico, setReporteDinamico] = useState(null);
+  const [reporteVoz, setReporteVoz] = useState(null);
   const [textoVoz, setTextoVoz] = useState('Muestrame las reservas canceladas de la semana');
   const [escuchando, setEscuchando] = useState(false);
   const [filtros, setFiltros] = useState(filtrosIniciales);
@@ -358,6 +407,39 @@ const GenerarReporte = () => {
   const tarjetasEstaticas = useMemo(
     () => normalizeBackendCards(reporteEstatico) || resumenEstatico,
     [reporteEstatico]
+  );
+
+  const tarjetasDinamicas = useMemo(
+    () => normalizeDynamicCards(reporteDinamico) || resumenDinamico,
+    [reporteDinamico]
+  );
+
+  const filasDinamicas = useMemo(
+    () => normalizeDetailRows(reporteDinamico) || tablaDinamico,
+    [reporteDinamico]
+  );
+
+  const seriesDinamicas = useMemo(
+    () => reporteDinamico?.series?.length ? reporteDinamico.series : charts.ventasProducto,
+    [reporteDinamico]
+  );
+
+  const tarjetasVoz = useMemo(
+    () => normalizeDynamicCards({
+      tipo: reporteVoz?.interpretacion?.tipo || 'reservas',
+      totales: reporteVoz?.reporte?.totales || {}
+    }) || resumenVoz,
+    [reporteVoz]
+  );
+
+  const filasVoz = useMemo(
+    () => normalizeDetailRows(reporteVoz?.reporte) || tablaVoz,
+    [reporteVoz]
+  );
+
+  const seriesVoz = useMemo(
+    () => reporteVoz?.reporte?.series?.length ? reporteVoz.reporte.series : charts.reservasEstado,
+    [reporteVoz]
   );
 
   useEffect(() => {
@@ -388,7 +470,7 @@ const GenerarReporte = () => {
     limpiarFeedback();
     setLoading(true);
     try {
-      await getReporteDinamico({
+      const response = await getReporteDinamico({
         tipo: filtros.tipo,
         fecha_inicio: filtros.fechaInicio,
         fecha_fin: filtros.fechaFin,
@@ -397,8 +479,10 @@ const GenerarReporte = () => {
         umbral_stock: filtros.umbral,
         agrupar_por: filtros.agruparPor
       });
+      setReporteDinamico(response.data || null);
       setMensaje('Reporte dinamico generado con los filtros seleccionados.');
     } catch (err) {
+      setReporteDinamico(null);
       setError('No se pudo conectar con el backend. La interfaz conserva datos de ejemplo.');
       console.error('[GenerarReporte] reporte dinamico:', err);
     } finally {
@@ -410,9 +494,11 @@ const GenerarReporte = () => {
     limpiarFeedback();
     setLoading(true);
     try {
-      await generarReporteVoz({ texto: textoVoz });
+      const response = await generarReporteVoz({ texto: textoVoz });
+      setReporteVoz(response.data || null);
       setMensaje('La IA interpreto la solicitud y genero el reporte.');
     } catch (err) {
+      setReporteVoz(null);
       setMensaje('Solicitud interpretada en modo maqueta.');
       console.error('[GenerarReporte] voz:', err);
     } finally {
@@ -599,17 +685,17 @@ const GenerarReporte = () => {
               </div>
             </section>
 
-            <SummaryGrid cards={resumenDinamico} />
+            <SummaryGrid cards={tarjetasDinamicas} />
             <div className="grid gap-6 xl:grid-cols-3">
-              <ChartCard title="Ventas por producto" subtitle="Resultado segun filtros" data={charts.ventasProducto} />
+              <ChartCard title="Resultado del reporte" subtitle="Serie obtenida del backend" data={seriesDinamicas} />
               <ChartCard title="Ingresos por dia" subtitle="Tendencia del periodo" data={charts.ingresosDia} variant="line" />
               <ChartCard title="Pagos por metodo" subtitle="Distribucion de cobros" data={charts.pagosMetodo} />
             </div>
             <DetailTable
               title="Tabla dinamica"
               subtitle="Datos filtrados por periodo, estado y metodo de pago"
-              headers={['Fecha', 'Producto / Concepto', 'Categoria', 'Cantidad', 'Metodo de pago', 'Estado', 'Total (Bs)']}
-              rows={tablaDinamico}
+              headers={reporteDinamico?.columnas?.length ? reporteDinamico.columnas : ['Fecha', 'Producto / Concepto', 'Categoria', 'Cantidad', 'Metodo de pago', 'Estado', 'Total (Bs)']}
+              rows={filasDinamicas}
             />
           </div>
         )}
@@ -674,19 +760,19 @@ const GenerarReporte = () => {
             </section>
 
             <section className="rounded-2xl border border-indigo-100 bg-indigo-50 px-5 py-4 text-sm font-bold text-indigo-900">
-              Encontre 18 reservas canceladas esta semana.
+              {reporteVoz?.respuesta || 'Encontre 18 reservas canceladas esta semana.'}
             </section>
 
-            <SummaryGrid cards={resumenVoz} />
+            <SummaryGrid cards={tarjetasVoz} />
             <div className="grid gap-6 xl:grid-cols-2">
-              <ChartCard title="Reservas por estado" subtitle="Interpretacion de la solicitud por voz" data={charts.reservasEstado} />
+              <ChartCard title="Resultado por voz" subtitle="Interpretacion de la solicitud por voz" data={seriesVoz} />
               <ChartCard title="Ocupacion por sala" subtitle="Contexto relacionado con las reservas" data={charts.ocupacionSala} />
             </div>
             <DetailTable
-              title="Detalle de reservas canceladas"
-              subtitle="Reservas detectadas por la interpretacion IA"
-              headers={['Fecha', 'Cliente', 'Sala', 'Estado', 'Motivo', 'Total']}
-              rows={tablaVoz}
+              title="Detalle del reporte"
+              subtitle="Datos detectados por la interpretacion IA"
+              headers={reporteVoz?.reporte?.columnas?.length ? reporteVoz.reporte.columnas : ['Fecha', 'Cliente', 'Sala', 'Estado', 'Motivo', 'Total']}
+              rows={filasVoz}
             />
           </div>
         )}
