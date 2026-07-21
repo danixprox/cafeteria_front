@@ -26,6 +26,9 @@ import CierreCaja from '../../pages/Admin/CierreCaja';
 import GestionPromociones from '../../pages/Admin/GestionPromociones';
 import GestionOpiniones from '../../pages/Admin/GestionOpiniones';
 import GenerarReporte from '../../pages/Admin/GenerarReporte';
+import GestionCombos from '../../pages/Admin/GestionCombos';
+import GestionCupones from '../../pages/Admin/GestionCupones';
+import GestionPuntos from '../../pages/Admin/GestionPuntos';
 const AdminPage = () => {
   const navigate = useNavigate();
 
@@ -845,8 +848,20 @@ handleLogout={handleLogout}
   <AdminProductos />
 )}
 
+{vista === "combos" && (
+  <GestionCombos />
+)}
+
 {vista === "promociones" && (
   <GestionPromociones />
+)}
+
+{vista === "cupones" && (
+  <GestionCupones />
+)}
+
+{vista === "puntos" && (
+  <GestionPuntos />
 )}
 
 {vista === "reportes" && (

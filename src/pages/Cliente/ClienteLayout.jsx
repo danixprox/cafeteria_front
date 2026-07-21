@@ -100,6 +100,12 @@ const ClienteLayout = () => {
     },
 
     {
+        path: '/cliente/puntos',
+        label: 'Mis Puntos',
+        icon: 'Pts'
+    },
+
+    {
         path: '/cliente/perfil',
         label: 'Mi Perfil',
         icon: '👤'

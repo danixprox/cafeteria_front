@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { salasService } from '../../services/salasService';
 import { productosService } from '../../services/productosService';
 import { finanzasService } from '../../services/finanzasService';
+import { cuponesService } from '../../services/cuponesService';
 import pedidosService from '../../services/pedidosService';
 import SelectorSalas from './SelectorSalas';
 import SelectorMesas from './SelectorMesas';
@@ -298,6 +299,41 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
     }
   };
 
+  const handleAplicarCupon = async (codigo) => {
+    if (!pedidoActivo) return;
+    setProcesandoAccionPago(true);
+    setError('');
+    try {
+      await cuponesService.aplicar(pedidoActivo.id, codigo);
+      const res = await finanzasService.getPedidoActivoMesa(mesaSeleccionada.id);
+      actualizarCarritoDesdePedido(res.data);
+      setExito('Cupón aplicado correctamente');
+      setTimeout(() => setExito(''), 3000);
+    } catch (err) {
+      mostrarError(err.response?.data?.error || 'Error al aplicar el cupón');
+      throw err;
+    } finally {
+      setProcesandoAccionPago(false);
+    }
+  };
+
+  const handleQuitarCupon = async () => {
+    if (!pedidoActivo) return;
+    setProcesandoAccionPago(true);
+    setError('');
+    try {
+      await cuponesService.quitar(pedidoActivo.id);
+      const res = await finanzasService.getPedidoActivoMesa(mesaSeleccionada.id);
+      actualizarCarritoDesdePedido(res.data);
+      setExito('Cupón quitado correctamente');
+      setTimeout(() => setExito(''), 3000);
+    } catch (err) {
+      mostrarError(err.response?.data?.error || 'Error al quitar el cupón');
+    } finally {
+      setProcesandoAccionPago(false);
+    }
+  };
+
   const handlePagarPedido = async () => {
     if (!pedidoActivo) return;
     setProcesandoAccionPago(true);
@@ -566,6 +602,8 @@ const PanelPedidosNormales = ({ onPedidoCreado }) => {
               pagando={procesandoAccionPago}
               onAplicarPromocion={handleAplicarPromocion}
               onQuitarPromocion={handleQuitarPromocion}
+              onAplicarCupon={handleAplicarCupon}
+              onQuitarCupon={handleQuitarCupon}
             />
           </div>
         )

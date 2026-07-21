@@ -21,6 +21,7 @@ import MisPedidos from './pages/Cliente/MisPedidos';
 import HistorialPedidosCliente from './pages/Cliente/HistorialPedidos';
 import ClienteLayout from './pages/Cliente/ClienteLayout';
 import OpinionesCliente from './pages/Cliente/OpinionesCliente';
+import PuntosCliente from './pages/Cliente/PuntosCliente';
 
 import DashboardEmpleado from './pages/Empleado/DashboardEmpleado';
 import CocineroLayout from './pages/Cocinero/CocineroLayout';
@@ -142,6 +143,7 @@ function App() {
           <Route path="historial" element={<HistorialPedidosCliente />} />
 
           <Route path="opiniones" element={<OpinionesCliente />} />
+          <Route path="puntos" element={<PuntosCliente />} />
 
           <Route path="perfil" element={<ClientPage />} />
 

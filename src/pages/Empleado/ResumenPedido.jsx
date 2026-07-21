@@ -14,8 +14,11 @@ const ResumenPedido = ({
   pagando,
   onAplicarPromocion,
   onQuitarPromocion,
+  onAplicarCupon,
+  onQuitarCupon,
 }) => {
   const [codigoPromo, setCodigoPromo] = useState('');
+  const [codigoCupon, setCodigoCupon] = useState('');
 
   const handlePromoSubmit = async (e) => {
     e.preventDefault();
@@ -23,6 +26,17 @@ const ResumenPedido = ({
     try {
       await onAplicarPromocion(codigoPromo.trim());
       setCodigoPromo('');
+    } catch {
+      return;
+    }
+  };
+
+  const handleCuponSubmit = async (e) => {
+    e.preventDefault();
+    if (!codigoCupon.trim()) return;
+    try {
+      await onAplicarCupon?.(codigoCupon.trim());
+      setCodigoCupon('');
     } catch {
       return;
     }
@@ -194,7 +208,7 @@ const ResumenPedido = ({
       )}
 
       {pedidoActivo && (
-        <div className="border-t border-slate-200 pt-4">
+        <div className="space-y-3 border-t border-slate-200 pt-4">
           {pedidoActivo.promocion ? (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200/60 bg-emerald-50/50 p-3.5">
               <div className="flex items-center gap-2.5">
@@ -233,6 +247,42 @@ const ResumenPedido = ({
                 className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white transition duration-200 hover:bg-emerald-700 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
               >
                 Aplicar
+              </button>
+            </form>
+          )}
+          {pedidoActivo.cupon ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-200/60 bg-indigo-50/50 p-3.5">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-indigo-800">
+                  CUPÓN: {pedidoActivo.cupon_codigo}
+                </p>
+                <p className="text-[10px] font-medium text-indigo-600">CU31 aplicado al pedido</p>
+              </div>
+              <button
+                type="button"
+                onClick={onQuitarCupon}
+                disabled={totalPendientePagar <= 0 || confirmando || pagando}
+                className="rounded-xl bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Quitar
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleCuponSubmit} className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Código de cupón"
+                value={codigoCupon}
+                onChange={(e) => setCodigoCupon(e.target.value.toUpperCase())}
+                disabled={totalPendientePagar <= 0 || confirmando || pagando}
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-800 placeholder-slate-400 transition focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+              />
+              <button
+                type="submit"
+                disabled={!codigoCupon.trim() || totalPendientePagar <= 0 || confirmando || pagando}
+                className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+              >
+                Cupón
               </button>
             </form>
           )}

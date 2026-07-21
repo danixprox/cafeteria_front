@@ -9,6 +9,8 @@ import {
   Users,
   WalletCards,
   Tag,
+  Gift,
+  BadgePercent,
 } from 'lucide-react';
 
 const menuItems = [
@@ -22,7 +24,10 @@ const menuItems = [
   { id: 'cierre_caja', label: 'Cierre de Caja', icon: <WalletCards size={18} /> },
   { id: 'categorias', label: 'Gestion de Categorias', icon: <ClipboardCheck size={18} /> },
   { id: 'productos', label: 'Gestion de Productos', icon: <ClipboardCheck size={18} /> },
+  { id: 'combos', label: 'Gestion de Combos', icon: <Gift size={18} /> },
   { id: 'promociones', label: 'Gestion de Promociones', icon: <Tag size={18} /> },
+  { id: 'cupones', label: 'Gestion de Cupones', icon: <BadgePercent size={18} /> },
+  { id: 'puntos', label: 'Programa de Puntos', icon: <WalletCards size={18} /> },
   { id: 'historial_pedidos', label: 'Historial de Pedidos', icon: <History size={18} /> },
 ];
 
