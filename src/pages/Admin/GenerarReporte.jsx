@@ -31,147 +31,59 @@ const tabs = [
 ];
 
 const tiposReporte = [
-  'Ventas e ingresos',
-  'Reservas',
-  'Preordenes',
-  'Ocupacion de salas',
-  'Inventario critico'
+  { label: 'Ingresos', value: 'ingresos' },
+  { label: 'Ventas', value: 'ventas' },
+  { label: 'Reservas', value: 'reservas' },
+  { label: 'Preordenes', value: 'preordenes' },
+  { label: 'Ocupacion de salas', value: 'ocupacion' },
+  { label: 'Inventario critico', value: 'inventario' }
 ];
 
-const filtrosIniciales = {
-  tipo: 'Ventas e ingresos',
-  fechaInicio: '2026-06-01',
-  fechaFin: '2026-06-21',
-  estado: 'Confirmado',
-  metodo: 'Todos',
-  umbral: '8',
-  agruparPor: 'Dia'
+const agrupaciones = [
+  { label: 'Dia', value: 'dia' },
+  { label: 'Producto', value: 'producto' },
+  { label: 'Estado', value: 'estado' },
+  { label: 'Metodo de pago', value: 'metodo' },
+  { label: 'Sala', value: 'sala' },
+  { label: 'Stock', value: 'stock' }
+];
+
+const getInitialFilters = () => {
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const toDateInput = (date) => date.toISOString().slice(0, 10);
+
+  return {
+    tipo: 'ventas',
+    fechaInicio: toDateInput(firstDay),
+    fechaFin: toDateInput(today),
+    umbral: '5',
+    agruparPor: 'producto'
+  };
 };
 
-const resumenEstatico = [
-  {
-    title: 'Ventas e ingresos',
-    value: 'Bs 18.420,50',
-    detail: '+14,2% frente a la semana anterior',
-    icon: WalletCards,
-    tone: 'indigo'
-  },
-  {
-    title: 'Ocupacion de salas',
-    value: '76%',
-    detail: 'Sala Jardin lidera con 88%',
-    icon: Utensils,
-    tone: 'green'
-  },
-  {
-    title: 'Inventario critico',
-    value: '12',
-    detail: 'Productos bajo el umbral minimo',
-    icon: PackageSearch,
-    tone: 'orange'
-  },
-  {
-    title: 'Preordenes',
-    value: '43',
-    detail: '31 listas para preparar',
-    icon: CheckCircle2,
-    tone: 'purple'
-  },
-  {
-    title: 'Reservas totales',
-    value: '128',
-    detail: '+9 reservas confirmadas hoy',
-    icon: CalendarDays,
-    tone: 'blue'
-  },
-  {
-    title: 'Ticket promedio',
-    value: 'Bs 86,40',
-    detail: 'Promedio por pedido pagado',
-    icon: TrendingUp,
-    tone: 'red'
-  }
+const emptyCards = [
+  { title: 'Ingresos confirmados', value: '0', detail: 'Ingresos confirmados', icon: WalletCards, tone: 'indigo' },
+  { title: 'Ventas reales', value: '0', detail: 'Pedidos no cancelados', icon: TrendingUp, tone: 'green' },
+  { title: 'Reservas totales', value: '0', detail: 'Reservas registradas', icon: CalendarDays, tone: 'blue' },
+  { title: 'Preordenes activas', value: '0', detail: 'Demanda anticipada', icon: CheckCircle2, tone: 'purple' },
+  { title: 'Ocupacion promedio', value: '0', detail: 'Ocupacion actual', icon: Utensils, tone: 'orange' },
+  { title: 'Inventario critico', value: '0', detail: 'Productos bajo umbral', icon: PackageSearch, tone: 'red' }
 ];
 
-const resumenDinamico = [
-  { title: 'Ingresos confirmados', value: 'Bs 9.850,00', detail: 'Filtro aplicado: confirmados', icon: WalletCards, tone: 'indigo' },
-  { title: 'Ventas reales', value: '116', detail: 'Pedidos pagados en el periodo', icon: BarChart3, tone: 'green' },
-  { title: 'Reservas filtradas', value: '54', detail: 'Reservas entre fechas', icon: CalendarDays, tone: 'blue' },
-  { title: 'Inventario critico', value: '8', detail: 'Stock menor o igual a 8', icon: PackageSearch, tone: 'orange' }
-];
-
-const resumenVoz = [
-  { title: 'Reservas canceladas', value: '18', detail: 'Semana actual', icon: CalendarDays, tone: 'red' },
-  { title: 'Reservas confirmadas', value: '64', detail: 'Listas para atencion', icon: CheckCircle2, tone: 'green' },
-  { title: 'Ocupacion promedio', value: '71%', detail: 'Salas tematicas activas', icon: Utensils, tone: 'indigo' },
-  { title: 'Tasa de cancelacion', value: '12,8%', detail: '-2,1% vs semana pasada', icon: TrendingUp, tone: 'orange' }
-];
-
-const charts = {
-  reservasEstado: [
-    { label: 'Confirmadas', value: 64 },
-    { label: 'Pendientes', value: 31 },
-    { label: 'Canceladas', value: 18 },
-    { label: 'Finalizadas', value: 15 }
-  ],
-  ocupacionSala: [
-    { label: 'Sala Jardin', value: 88 },
-    { label: 'Sala Familiar', value: 74 },
-    { label: 'Terraza', value: 69 },
-    { label: 'Sala Ejecutiva', value: 58 }
-  ],
-  inventarioCategoria: [
-    { label: 'Bebidas', value: 5 },
-    { label: 'Panaderia', value: 4 },
-    { label: 'Insumos cocina', value: 3 },
-    { label: 'Postres', value: 2 }
-  ],
-  ingresosDia: [
-    { label: 'Lun', value: 2180 },
-    { label: 'Mar', value: 2540 },
-    { label: 'Mie', value: 1990 },
-    { label: 'Jue', value: 3120 },
-    { label: 'Vie', value: 3790 },
-    { label: 'Sab', value: 4250 },
-    { label: 'Dom', value: 2550 }
-  ],
-  ventasProducto: [
-    { label: 'Silpancho', value: 42 },
-    { label: 'Cafe juanita', value: 38 },
-    { label: 'Pique macho', value: 27 },
-    { label: 'Jugo natural', value: 24 },
-    { label: 'Torta casera', value: 18 }
-  ],
-  pagosMetodo: [
-    { label: 'QR', value: 48 },
-    { label: 'Tarjeta', value: 31 },
-    { label: 'Efectivo', value: 27 },
-    { label: 'Stripe', value: 10 }
-  ]
-};
-
-const tablaEstatico = [
-  ['21/06/2026', 'Venta', 'Almuerzo familiar - Sala Jardin', 'Pagado', 'QR', '324,00'],
-  ['21/06/2026', 'Reserva', 'Mesa 8 - Terraza', 'Confirmada', 'Tarjeta', '80,00'],
-  ['20/06/2026', 'Preorden', 'Cafe Juanita x 6', 'Lista', 'Efectivo', '132,00'],
-  ['20/06/2026', 'Inventario', 'Leche deslactosada', 'Critico', '-', '0,00'],
-  ['19/06/2026', 'Venta', 'Cena ejecutiva', 'Pagado', 'Tarjeta', '486,50'],
-  ['19/06/2026', 'Reserva', 'Sala Familiar', 'Cancelada', 'QR', '0,00']
-];
-
-const tablaDinamico = [
-  ['21/06/2026', 'Silpancho', 'Platos principales', '18', 'QR', 'Pagado', '810,00'],
-  ['21/06/2026', 'Cafe Juanita', 'Bebidas calientes', '26', 'Tarjeta', 'Pagado', '572,00'],
-  ['20/06/2026', 'Reserva terraza', 'Reservas', '7', 'QR', 'Confirmado', '560,00'],
-  ['20/06/2026', 'Torta casera', 'Postres', '14', 'Efectivo', 'Pagado', '350,00'],
-  ['19/06/2026', 'Pique macho', 'Platos principales', '11', 'Tarjeta', 'Pagado', '715,00']
-];
-
-const tablaVoz = [
-  ['21/06/2026', 'Maria Fernanda', 'Sala Jardin', 'Cancelada', 'Cruce de horario', 'Bs 0,00'],
-  ['20/06/2026', 'Luis Rojas', 'Terraza', 'Cancelada', 'Cliente no asistio', 'Bs 0,00'],
-  ['19/06/2026', 'Camila Soto', 'Sala Familiar', 'Cancelada', 'Solicitud telefonica', 'Bs 0,00'],
-  ['18/06/2026', 'Ruben Vargas', 'Sala Ejecutiva', 'Cancelada', 'Pago no confirmado', 'Bs 0,00']
+const dynamicCardConfig = [
+  ['ingresos_confirmados', 'Ingresos confirmados', WalletCards, 'indigo'],
+  ['cantidad_pagos', 'Pagos confirmados', CreditCard, 'blue'],
+  ['cantidad_pedidos', 'Pedidos', BarChart3, 'green'],
+  ['total_vendido', 'Total vendido', TrendingUp, 'indigo'],
+  ['reservas', 'Reservas', CalendarDays, 'blue'],
+  ['reservas_activas', 'Reservas activas', CheckCircle2, 'green'],
+  ['preordenes', 'Preordenes', CheckCircle2, 'purple'],
+  ['demanda_anticipada', 'Demanda anticipada', PackageSearch, 'orange'],
+  ['convertidas_a_pedido', 'Convertidas a pedido', BarChart3, 'green'],
+  ['total_demanda_anticipada', 'Total demanda anticipada', WalletCards, 'indigo'],
+  ['ocupacion_promedio', 'Ocupacion promedio', Utensils, 'orange'],
+  ['productos_criticos', 'Productos criticos', PackageSearch, 'red']
 ];
 
 const toneClasses = {
@@ -184,78 +96,97 @@ const toneClasses = {
 };
 
 const badgeClasses = {
-  Pagado: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-  Confirmada: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
-  Confirmado: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
-  Lista: 'bg-purple-50 text-purple-700 ring-purple-100',
-  Critico: 'bg-orange-50 text-orange-700 ring-orange-100',
-  Cancelada: 'bg-rose-50 text-rose-700 ring-rose-100'
+  pagado: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+  confirmada: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
+  confirmado: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
+  pendiente: 'bg-amber-50 text-amber-700 ring-amber-100',
+  exitosa: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+  exitoso: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+  cancelada: 'bg-rose-50 text-rose-700 ring-rose-100',
+  cancelado: 'bg-rose-50 text-rose-700 ring-rose-100',
+  critico: 'bg-orange-50 text-orange-700 ring-orange-100'
+};
+
+const formatNumber = (value) => Number(value || 0).toLocaleString('es-BO');
+const formatMoney = (value) => `Bs ${Number(value || 0).toLocaleString('es-BO', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+})}`;
+const formatPercent = (value) => `${formatNumber(value)}%`;
+const titleize = (value) => String(value || '').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+const hasValue = (value) => value !== undefined && value !== null && value !== '';
+
+const formatMetricValue = (key, value) => {
+  if (key.includes('ingresos') || key.includes('total_vendido') || key.includes('total_demanda')) {
+    return formatMoney(value);
+  }
+  if (key.includes('ocupacion')) return formatPercent(value);
+  return formatNumber(value);
 };
 
 const normalizeBackendCards = (payload) => {
   const tarjetas = payload?.tarjetas;
-  if (!tarjetas || typeof tarjetas !== 'object') return null;
+  if (!tarjetas || typeof tarjetas !== 'object') return emptyCards;
+
   return [
-    { title: 'Ventas e ingresos', value: `Bs ${Number(tarjetas.ingresos_confirmados || 0).toLocaleString('es-BO')}`, detail: 'Ingresos confirmados', icon: WalletCards, tone: 'indigo' },
-    { title: 'Ocupacion de salas', value: `${Number(tarjetas.ocupacion_promedio || 0).toLocaleString('es-BO')}%`, detail: 'Ocupacion promedio', icon: Utensils, tone: 'green' },
-    { title: 'Inventario critico', value: `${tarjetas.productos_criticos || 0}`, detail: 'Productos bajo umbral', icon: PackageSearch, tone: 'orange' },
-    { title: 'Preordenes', value: `${tarjetas.preordenes_activas || 0}`, detail: 'Preordenes activas', icon: CheckCircle2, tone: 'purple' },
-    { title: 'Reservas totales', value: `${tarjetas.reservas_totales || 0}`, detail: 'Reservas registradas', icon: CalendarDays, tone: 'blue' },
-    { title: 'Ventas reales', value: `${tarjetas.ventas_reales || 0}`, detail: 'Pedidos pagados', icon: TrendingUp, tone: 'red' }
+    { title: 'Ingresos confirmados', value: formatMoney(tarjetas.ingresos_confirmados), detail: 'Ingresos confirmados', icon: WalletCards, tone: 'indigo' },
+    { title: 'Ventas reales', value: formatNumber(tarjetas.ventas_reales), detail: 'Pedidos no cancelados', icon: TrendingUp, tone: 'green' },
+    { title: 'Reservas totales', value: formatNumber(tarjetas.reservas_totales), detail: 'Reservas registradas', icon: CalendarDays, tone: 'blue' },
+    { title: 'Preordenes activas', value: formatNumber(tarjetas.preordenes_activas), detail: 'Demanda anticipada', icon: CheckCircle2, tone: 'purple' },
+    { title: 'Ocupacion promedio', value: formatPercent(tarjetas.ocupacion_promedio), detail: 'Ocupacion actual', icon: Utensils, tone: 'orange' },
+    { title: 'Inventario critico', value: formatNumber(tarjetas.productos_criticos), detail: 'Productos bajo umbral', icon: PackageSearch, tone: 'red' }
   ];
 };
 
 const normalizeDynamicCards = (payload) => {
-  if (!payload || typeof payload !== 'object') return null;
-  const totales = payload.totales || {};
-  const tipo = payload.tipo || 'ventas';
+  const totales = payload?.totales;
+  if (!totales || typeof totales !== 'object') return emptyCards.slice(0, 4);
 
-  switch (tipo) {
-    case 'ingresos':
-      return [
-        { title: 'Ingresos confirmados', value: `Bs ${Number(totales.ingresos_confirmados || 0).toLocaleString('es-BO')}`, detail: 'Pagos exitosos del periodo', icon: WalletCards, tone: 'indigo' },
-        { title: 'Pagos registrados', value: `${totales.cantidad_pagos || 0}`, detail: 'Cantidad de pagos', icon: CreditCard, tone: 'blue' }
-      ];
-    case 'reservas':
-      return [
-        { title: 'Reservas', value: `${totales.reservas || 0}`, detail: 'Total del rango', icon: CalendarDays, tone: 'blue' },
-        { title: 'Reservas activas', value: `${totales.reservas_activas || 0}`, detail: 'Reservas en estado activo', icon: CheckCircle2, tone: 'green' }
-      ];
-    case 'preordenes':
-      return [
-        { title: 'Preordenes', value: `${totales.preordenes || 0}`, detail: 'Preordenes del periodo', icon: CheckCircle2, tone: 'purple' },
-        { title: 'Demanda anticipada', value: `${totales.demanda_anticipada || 0}`, detail: 'Preordenes pendientes', icon: TrendingUp, tone: 'orange' }
-      ];
-    case 'ocupacion':
-      return [
-        { title: 'Ocupacion promedio', value: `${Number(totales.ocupacion_promedio || 0).toLocaleString('es-BO')}%`, detail: 'Promedio de salas', icon: Utensils, tone: 'green' }
-      ];
-    case 'inventario':
-      return [
-        { title: 'Productos criticos', value: `${totales.productos_criticos || 0}`, detail: 'Stock bajo umbral', icon: PackageSearch, tone: 'orange' }
-      ];
-    default:
-      return [
-        { title: 'Ventas reales', value: `${totales.cantidad_pedidos || 0}`, detail: 'Pedidos del periodo', icon: BarChart3, tone: 'green' },
-        { title: 'Total vendido', value: `Bs ${Number(totales.total_vendido || 0).toLocaleString('es-BO')}`, detail: 'Monto acumulado', icon: WalletCards, tone: 'indigo' }
-      ];
-  }
+  const cards = dynamicCardConfig
+    .filter(([key]) => Object.prototype.hasOwnProperty.call(totales, key))
+    .map(([key, title, icon, tone]) => ({
+      title,
+      value: formatMetricValue(key, totales[key]),
+      detail: title,
+      icon,
+      tone
+    }));
+
+  return cards.length ? cards : emptyCards.slice(0, 4);
 };
 
-const normalizeDetailRows = (payload) => {
-  if (!payload || typeof payload !== 'object' || !Array.isArray(payload.filas)) return null;
-  const headers = payload.columnas || [];
-  return payload.filas.map((row) => headers.map((column) => {
-    const value = row?.[column];
-    if (typeof value === 'number') return value.toLocaleString('es-BO');
-    return value ?? '';
-  }));
-};
+const normalizeChartSeries = (series = [], labelKey = 'label', valueKey = 'value') => (
+  Array.isArray(series)
+    ? series
+      .map((item) => ({
+        label: String(item?.[labelKey] ?? item?.label ?? ''),
+        value: Number(item?.[valueKey] ?? item?.value ?? 0)
+      }))
+      .filter((item) => item.label && Number.isFinite(item.value))
+    : []
+);
 
-const maxValue = (data) => Math.max(...data.map((item) => item.value), 1);
+const chartFromRows = (rows = [], labelKey, valueKey) => normalizeChartSeries(rows, labelKey, valueKey);
+
+const normalizeRows = (rows = [], columns = []) => (
+  Array.isArray(rows)
+    ? rows.map((row) => (
+      Array.isArray(row)
+        ? row.map((cell) => hasValue(cell) ? String(cell) : '-')
+        : columns.map((column) => hasValue(row?.[column]) ? String(row[column]) : '-')
+    ))
+    : []
+);
+
+const normalizeColumns = (columns = []) => (
+  Array.isArray(columns) && columns.length ? columns.map(titleize) : []
+);
+
+const maxValue = (data) => Math.max(...data.map((item) => Number(item.value) || 0), 1);
 
 const ChartCard = ({ title, subtitle, data, variant = 'bar' }) => {
-  const max = maxValue(data);
+  const hasData = Array.isArray(data) && data.length > 0;
+  const max = hasData ? maxValue(data) : 1;
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -271,7 +202,11 @@ const ChartCard = ({ title, subtitle, data, variant = 'bar' }) => {
         )}
       </div>
 
-      {variant === 'line' ? (
+      {!hasData ? (
+        <div className="mt-5 flex h-48 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-sm font-bold text-slate-500">
+          No hay datos para graficar
+        </div>
+      ) : variant === 'line' ? (
         <div className="mt-6 flex h-48 items-end gap-3 border-b border-l border-slate-100 px-2 pb-3">
           {data.map((item) => (
             <div key={item.label} className="flex min-w-0 flex-1 flex-col items-center gap-2">
@@ -281,7 +216,7 @@ const ChartCard = ({ title, subtitle, data, variant = 'bar' }) => {
                   style={{ height: `${Math.max((item.value / max) * 100, 8)}%` }}
                 />
               </div>
-              <span className="text-xs font-semibold text-slate-500">{item.label}</span>
+              <span className="max-w-full truncate text-xs font-semibold text-slate-500">{item.label}</span>
             </div>
           ))}
         </div>
@@ -290,8 +225,8 @@ const ChartCard = ({ title, subtitle, data, variant = 'bar' }) => {
           {data.map((item) => (
             <div key={item.label}>
               <div className="mb-2 flex items-center justify-between gap-3 text-xs">
-                <span className="font-semibold text-slate-600">{item.label}</span>
-                <span className="font-bold text-slate-900">{item.value.toLocaleString('es-BO')}</span>
+                <span className="truncate font-semibold text-slate-600">{item.label}</span>
+                <span className="font-bold text-slate-900">{formatNumber(item.value)}</span>
               </div>
               <div className="h-3 rounded-full bg-slate-100">
                 <div
@@ -314,7 +249,7 @@ const SummaryGrid = ({ cards }) => (
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-slate-500">{title}</p>
-            <p className="mt-3 text-2xl font-black tracking-tight text-slate-950">{value}</p>
+            <p className="mt-3 text-2xl font-black tracking-tight text-slate-950">{value || '0'}</p>
             <p className="mt-2 text-sm text-slate-500">{detail}</p>
           </div>
           <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1 ${toneClasses[tone]}`}>
@@ -335,7 +270,7 @@ const DetailTable = ({ title, subtitle, headers, rows }) => (
       </div>
       <span className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
         <Clock3 className="h-3.5 w-3.5" />
-        Datos actualizados
+        Datos del backend
       </span>
     </div>
     <div className="overflow-x-auto">
@@ -348,14 +283,15 @@ const DetailTable = ({ title, subtitle, headers, rows }) => (
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {rows.map((row, rowIndex) => (
+          {rows.length ? rows.map((row, rowIndex) => (
             <tr key={`${title}-${rowIndex}`} className="hover:bg-slate-50">
               {row.map((cell, cellIndex) => {
                 const isEstado = headers[cellIndex]?.toLowerCase().includes('estado');
+                const badgeKey = String(cell).toLowerCase();
                 return (
                   <td key={`${title}-${rowIndex}-${cellIndex}`} className="px-5 py-4 text-slate-600">
                     {isEstado ? (
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${badgeClasses[cell] || 'bg-slate-100 text-slate-700 ring-slate-200'}`}>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${badgeClasses[badgeKey] || 'bg-slate-100 text-slate-700 ring-slate-200'}`}>
                         {cell}
                       </span>
                     ) : (
@@ -365,7 +301,13 @@ const DetailTable = ({ title, subtitle, headers, rows }) => (
                 );
               })}
             </tr>
-          ))}
+          )) : (
+            <tr>
+              <td colSpan={headers.length || 1} className="px-5 py-10 text-center text-sm font-bold text-slate-500">
+                No hay registros para mostrar
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -386,7 +328,11 @@ const SelectField = ({ value, onChange, options }) => (
       onChange={onChange}
       className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-10 text-sm font-semibold text-slate-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
     >
-      {options.map((option) => <option key={option}>{option}</option>)}
+      {options.map((option) => (
+        <option key={option.value || option} value={option.value || option}>
+          {option.label || option}
+        </option>
+      ))}
     </select>
     <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
   </div>
@@ -400,47 +346,48 @@ const GenerarReporte = () => {
   const [reporteEstatico, setReporteEstatico] = useState(null);
   const [reporteDinamico, setReporteDinamico] = useState(null);
   const [reporteVoz, setReporteVoz] = useState(null);
-  const [textoVoz, setTextoVoz] = useState('Muestrame las reservas canceladas de la semana');
+  const [textoVoz, setTextoVoz] = useState('');
   const [escuchando, setEscuchando] = useState(false);
-  const [filtros, setFiltros] = useState(filtrosIniciales);
+  const [filtros, setFiltros] = useState(getInitialFilters);
 
-  const tarjetasEstaticas = useMemo(
-    () => normalizeBackendCards(reporteEstatico) || resumenEstatico,
-    [reporteEstatico]
-  );
+  const tarjetasEstaticas = useMemo(() => normalizeBackendCards(reporteEstatico), [reporteEstatico]);
+  const tarjetasDinamicas = useMemo(() => normalizeDynamicCards(reporteDinamico), [reporteDinamico]);
+  const tarjetasVoz = useMemo(() => normalizeDynamicCards(reporteVoz?.reporte), [reporteVoz]);
 
-  const tarjetasDinamicas = useMemo(
-    () => normalizeDynamicCards(reporteDinamico) || resumenDinamico,
-    [reporteDinamico]
-  );
+  const chartsEstaticos = useMemo(() => {
+    const graficos = reporteEstatico?.graficos || {};
+    return {
+      reservasEstado: chartFromRows(graficos.reservas_por_estado, 'estado', 'cantidad'),
+      ocupacionSala: chartFromRows(graficos.ocupacion_por_sala, 'sala', 'ocupacion_periodo'),
+      ingresosDia: chartFromRows(graficos.ingresos_por_dia, 'fecha', 'total'),
+      ventasProducto: chartFromRows(graficos.ventas_por_producto, 'producto', 'cantidad')
+    };
+  }, [reporteEstatico]);
 
-  const filasDinamicas = useMemo(
-    () => normalizeDetailRows(reporteDinamico) || tablaDinamico,
-    [reporteDinamico]
-  );
+  const tablaInventario = useMemo(() => {
+    const rows = reporteEstatico?.tablas?.inventario_critico || [];
+    const columns = ['producto', 'categoria', 'stock', 'stock_reservado', 'stock_disponible', 'umbral'];
+    return {
+      headers: normalizeColumns(columns),
+      rows: normalizeRows(rows, columns)
+    };
+  }, [reporteEstatico]);
 
-  const seriesDinamicas = useMemo(
-    () => reporteDinamico?.series?.length ? reporteDinamico.series : charts.ventasProducto,
-    [reporteDinamico]
-  );
+  const tablaDinamica = useMemo(() => {
+    const columns = reporteDinamico?.columnas || [];
+    return {
+      headers: normalizeColumns(columns),
+      rows: normalizeRows(reporteDinamico?.filas, columns)
+    };
+  }, [reporteDinamico]);
 
-  const tarjetasVoz = useMemo(
-    () => normalizeDynamicCards({
-      tipo: reporteVoz?.interpretacion?.tipo || 'reservas',
-      totales: reporteVoz?.reporte?.totales || {}
-    }) || resumenVoz,
-    [reporteVoz]
-  );
-
-  const filasVoz = useMemo(
-    () => normalizeDetailRows(reporteVoz?.reporte) || tablaVoz,
-    [reporteVoz]
-  );
-
-  const seriesVoz = useMemo(
-    () => reporteVoz?.reporte?.series?.length ? reporteVoz.reporte.series : charts.reservasEstado,
-    [reporteVoz]
-  );
+  const tablaVoz = useMemo(() => {
+    const columns = reporteVoz?.reporte?.columnas || [];
+    return {
+      headers: normalizeColumns(columns),
+      rows: normalizeRows(reporteVoz?.reporte?.filas, columns)
+    };
+  }, [reporteVoz]);
 
   useEffect(() => {
     cargarReporteEstatico(true);
@@ -459,7 +406,8 @@ const GenerarReporte = () => {
       setReporteEstatico(response.data || null);
       if (!silencioso) setMensaje('Reporte estatico actualizado correctamente.');
     } catch (err) {
-      if (!silencioso) setError('No se pudo conectar con el backend. Se muestran datos de maqueta del CU25.');
+      setReporteEstatico(null);
+      if (!silencioso) setError('No se pudo conectar con el backend.');
       console.error('[GenerarReporte] reporte estatico:', err);
     } finally {
       if (!silencioso) setLoading(false);
@@ -474,8 +422,6 @@ const GenerarReporte = () => {
         tipo: filtros.tipo,
         fecha_inicio: filtros.fechaInicio,
         fecha_fin: filtros.fechaFin,
-        estado: filtros.estado,
-        metodo_pago: filtros.metodo,
         umbral_stock: filtros.umbral,
         agrupar_por: filtros.agruparPor
       });
@@ -483,7 +429,7 @@ const GenerarReporte = () => {
       setMensaje('Reporte dinamico generado con los filtros seleccionados.');
     } catch (err) {
       setReporteDinamico(null);
-      setError('No se pudo conectar con el backend. La interfaz conserva datos de ejemplo.');
+      setError('No se pudo conectar con el backend.');
       console.error('[GenerarReporte] reporte dinamico:', err);
     } finally {
       setLoading(false);
@@ -494,12 +440,17 @@ const GenerarReporte = () => {
     limpiarFeedback();
     setLoading(true);
     try {
-      const response = await generarReporteVoz({ texto: textoVoz });
+      const response = await generarReporteVoz({
+        texto: textoVoz,
+        fecha_inicio: filtros.fechaInicio,
+        fecha_fin: filtros.fechaFin,
+        umbral_stock: filtros.umbral
+      });
       setReporteVoz(response.data || null);
       setMensaje('La IA interpreto la solicitud y genero el reporte.');
     } catch (err) {
       setReporteVoz(null);
-      setMensaje('Solicitud interpretada en modo maqueta.');
+      setError('No se pudo conectar con el backend.');
       console.error('[GenerarReporte] voz:', err);
     } finally {
       setLoading(false);
@@ -621,21 +572,17 @@ const GenerarReporte = () => {
           <div className="space-y-6">
             <SummaryGrid cards={tarjetasEstaticas} />
             <div className="grid gap-6 xl:grid-cols-2">
-              <ChartCard title="Reservas por estado" subtitle="Distribucion semanal de reservas" data={charts.reservasEstado} />
-              <ChartCard title="Ocupacion por sala" subtitle="Porcentaje promedio por ambiente" data={charts.ocupacionSala} />
-              <ChartCard title="Inventario critico por categoria" subtitle="Productos bajo umbral minimo" data={charts.inventarioCategoria} />
-              <ChartCard title="Ingresos por dia" subtitle="Ingresos confirmados en Bs" data={charts.ingresosDia} variant="line" />
-              <ChartCard title="Ventas por producto" subtitle="Productos mas vendidos" data={charts.ventasProducto} />
+              <ChartCard title="Reservas por estado" subtitle="Datos reales del backend" data={chartsEstaticos.reservasEstado} />
+              <ChartCard title="Ocupacion por sala" subtitle="Datos reales del backend" data={chartsEstaticos.ocupacionSala} />
+              <ChartCard title="Ingresos por dia" subtitle="Datos reales del backend" data={chartsEstaticos.ingresosDia} variant="line" />
+              <ChartCard title="Ventas por producto" subtitle="Datos reales del backend" data={chartsEstaticos.ventasProducto} />
             </div>
             <DetailTable
-              title="Tabla de detalle"
-              subtitle="Movimientos principales del reporte estatico"
-              headers={['Fecha', 'Tipo', 'Concepto', 'Estado', 'Metodo', 'Total (Bs)']}
-              rows={tablaEstatico}
+              title="Inventario critico"
+              subtitle="Registros reales del reporte estatico"
+              headers={tablaInventario.headers}
+              rows={tablaInventario.rows}
             />
-            <footer className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-xs font-semibold text-slate-500 shadow-sm">
-              Los datos se actualizan cada 5 minutos. Ultima actualizacion: 21/06/2026 17:55
-            </footer>
           </div>
         )}
 
@@ -662,17 +609,11 @@ const GenerarReporte = () => {
                 <Field label="Fecha fin">
                   <input type="date" value={filtros.fechaFin} onChange={(e) => setFiltros({ ...filtros, fechaFin: e.target.value })} className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" />
                 </Field>
-                <Field label="Estado">
-                  <SelectField value={filtros.estado} onChange={(e) => setFiltros({ ...filtros, estado: e.target.value })} options={['Todos', 'Confirmado', 'Pendiente', 'Pagado', 'Cancelado']} />
-                </Field>
-                <Field label="Metodo de pago">
-                  <SelectField value={filtros.metodo} onChange={(e) => setFiltros({ ...filtros, metodo: e.target.value })} options={['Todos', 'QR', 'Tarjeta', 'Efectivo', 'Stripe']} />
-                </Field>
                 <Field label="Umbral inventario">
                   <input type="number" value={filtros.umbral} onChange={(e) => setFiltros({ ...filtros, umbral: e.target.value })} className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" />
                 </Field>
                 <Field label="Agrupar por">
-                  <SelectField value={filtros.agruparPor} onChange={(e) => setFiltros({ ...filtros, agruparPor: e.target.value })} options={['Dia', 'Semana', 'Mes', 'Estado', 'Metodo de pago', 'Sala']} />
+                  <SelectField value={filtros.agruparPor} onChange={(e) => setFiltros({ ...filtros, agruparPor: e.target.value })} options={agrupaciones} />
                 </Field>
                 <button
                   onClick={cargarReporteDinamico}
@@ -686,16 +627,15 @@ const GenerarReporte = () => {
             </section>
 
             <SummaryGrid cards={tarjetasDinamicas} />
-            <div className="grid gap-6 xl:grid-cols-3">
-              <ChartCard title="Resultado del reporte" subtitle="Serie obtenida del backend" data={seriesDinamicas} />
-              <ChartCard title="Ingresos por dia" subtitle="Tendencia del periodo" data={charts.ingresosDia} variant="line" />
-              <ChartCard title="Pagos por metodo" subtitle="Distribucion de cobros" data={charts.pagosMetodo} />
+            <div className="grid gap-6 xl:grid-cols-2">
+              <ChartCard title="Serie del reporte" subtitle="Resultado segun filtros" data={normalizeChartSeries(reporteDinamico?.series)} />
+              <ChartCard title="Tendencia del reporte" subtitle="Resultado segun filtros" data={normalizeChartSeries(reporteDinamico?.series)} variant="line" />
             </div>
             <DetailTable
               title="Tabla dinamica"
-              subtitle="Datos filtrados por periodo, estado y metodo de pago"
-              headers={reporteDinamico?.columnas?.length ? reporteDinamico.columnas : ['Fecha', 'Producto / Concepto', 'Categoria', 'Cantidad', 'Metodo de pago', 'Estado', 'Total (Bs)']}
-              rows={filasDinamicas}
+              subtitle="Datos filtrados por periodo y agrupacion"
+              headers={tablaDinamica.headers}
+              rows={tablaDinamica.rows}
             />
           </div>
         )}
@@ -721,12 +661,8 @@ const GenerarReporte = () => {
                     onChange={(e) => setTextoVoz(e.target.value)}
                     rows={5}
                     className="mt-5 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-                    placeholder="Muestrame las reservas canceladas de la semana"
+                    placeholder="Escribe la consulta para generar el reporte"
                   />
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
-                    <span className="rounded-full bg-slate-100 px-3 py-1">Muestrame las ventas de hoy por metodo de pago</span>
-                    <span className="rounded-full bg-slate-100 px-3 py-1">Inventario critico menor a 5</span>
-                  </div>
                 </div>
 
                 <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
@@ -747,32 +683,38 @@ const GenerarReporte = () => {
                   </button>
                   <div className="rounded-xl bg-white p-4 text-sm text-slate-600 ring-1 ring-slate-200">
                     <p className="font-black text-slate-950">Resultado interpretado</p>
-                    <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
-                      <div><dt className="text-slate-400">Tipo</dt><dd className="font-bold">Reservas</dd></div>
-                      <div><dt className="text-slate-400">Agrupar por</dt><dd className="font-bold">Estado</dd></div>
-                      <div><dt className="text-slate-400">Fecha inicio</dt><dd className="font-bold">15/06/2026</dd></div>
-                      <div><dt className="text-slate-400">Fecha fin</dt><dd className="font-bold">21/06/2026</dd></div>
-                      <div className="col-span-2"><dt className="text-slate-400">Confianza</dt><dd className="font-bold text-emerald-700">94%</dd></div>
-                    </dl>
+                    {reporteVoz?.interpretacion ? (
+                      <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                        <div><dt className="text-slate-400">Tipo</dt><dd className="font-bold">{titleize(reporteVoz.interpretacion.tipo)}</dd></div>
+                        <div><dt className="text-slate-400">Agrupar por</dt><dd className="font-bold">{titleize(reporteVoz.interpretacion.agrupar_por)}</dd></div>
+                        <div><dt className="text-slate-400">Fecha inicio</dt><dd className="font-bold">{reporteVoz.interpretacion.fecha_inicio || '-'}</dd></div>
+                        <div><dt className="text-slate-400">Fecha fin</dt><dd className="font-bold">{reporteVoz.interpretacion.fecha_fin || '-'}</dd></div>
+                        <div className="col-span-2"><dt className="text-slate-400">Confianza</dt><dd className="font-bold text-emerald-700">{formatPercent((reporteVoz.interpretacion.confianza || 0) * 100)}</dd></div>
+                      </dl>
+                    ) : (
+                      <p className="mt-3 text-xs font-bold text-slate-500">No hay registros para mostrar</p>
+                    )}
                   </div>
                 </div>
               </div>
             </section>
 
-            <section className="rounded-2xl border border-indigo-100 bg-indigo-50 px-5 py-4 text-sm font-bold text-indigo-900">
-              {reporteVoz?.respuesta || 'Encontre 18 reservas canceladas esta semana.'}
-            </section>
+            {reporteVoz?.respuesta && (
+              <section className="rounded-2xl border border-indigo-100 bg-indigo-50 px-5 py-4 text-sm font-bold text-indigo-900">
+                {reporteVoz.respuesta}
+              </section>
+            )}
 
             <SummaryGrid cards={tarjetasVoz} />
             <div className="grid gap-6 xl:grid-cols-2">
-              <ChartCard title="Resultado por voz" subtitle="Interpretacion de la solicitud por voz" data={seriesVoz} />
-              <ChartCard title="Ocupacion por sala" subtitle="Contexto relacionado con las reservas" data={charts.ocupacionSala} />
+              <ChartCard title="Serie del reporte por voz" subtitle="Datos reales interpretados por el backend" data={normalizeChartSeries(reporteVoz?.reporte?.series)} />
+              <ChartCard title="Tendencia del reporte por voz" subtitle="Datos reales interpretados por el backend" data={normalizeChartSeries(reporteVoz?.reporte?.series)} variant="line" />
             </div>
             <DetailTable
-              title="Detalle del reporte"
-              subtitle="Datos detectados por la interpretacion IA"
-              headers={reporteVoz?.reporte?.columnas?.length ? reporteVoz.reporte.columnas : ['Fecha', 'Cliente', 'Sala', 'Estado', 'Motivo', 'Total']}
-              rows={filasVoz}
+              title="Detalle del reporte por voz"
+              subtitle="Registros reales devueltos por la interpretacion IA"
+              headers={tablaVoz.headers}
+              rows={tablaVoz.rows}
             />
           </div>
         )}

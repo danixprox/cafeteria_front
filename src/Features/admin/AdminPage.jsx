@@ -849,6 +849,10 @@ handleLogout={handleLogout}
   <GestionPromociones />
 )}
 
+{vista === "reportes" && (
+  <GenerarReporte />
+)}
+
        </main>
     </div>
   );
