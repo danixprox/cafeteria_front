@@ -9,7 +9,7 @@ import SelectorMesas from './SelectorMesas';
 import CatalogoProductos from './CatalogoProductos';
 import ResumenPedido from './ResumenPedido';
 import NotaVentaModal from './NotaVentaModal';
-import ClientePedidoSelector from '../../components/ClientePedidoSelector';
+import ClientePedidoSelector from '../../Components/ClientePedidoSelector';
 
 const PanelPedidosNormales = ({ onPedidoCreado }) => {
   const [paso, setPaso] = useState('salas');

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import cocinaService from '../../services/cocinaService';
-import NotificacionesOperativasPanel from '../../components/NotificacionesOperativasPanel';
+import NotificacionesOperativasPanel from '../../Components/NotificacionesOperativasPanel';
 import useNotificacionesOperativas from '../../hooks/useNotificacionesOperativas';
 
 const estadosConfig = {

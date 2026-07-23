@@ -4,7 +4,7 @@ import { salasService } from '../../services/salasService';
 import { reservasService } from '../../services/reservasService';
 import { productosService } from '../../services/productosService';
 import { finanzasService } from '../../services/finanzasService';
-import MapaMesas from '../../components/MapaMesas';
+import MapaMesas from '../../Components/MapaMesas';
 
 const DetalleSala = () => {
     const { id } = useParams();

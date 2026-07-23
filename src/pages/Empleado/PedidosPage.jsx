@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import NotificacionesOperativasPanel from '../../components/NotificacionesOperativasPanel';
+import NotificacionesOperativasPanel from '../../Components/NotificacionesOperativasPanel';
 import useNotificacionesOperativas from '../../hooks/useNotificacionesOperativas';
 import pedidosService from '../../services/pedidosService';
 import PanelPedidos from './PanelPedidos';
