@@ -1,7 +1,13 @@
 import React, { useMemo } from 'react';
 import CardProducto from './CardProducto';
 
-const CatalogoProductos = ({ productos, carrito, onAgregarAlCarrito }) => {
+const CatalogoProductos = (props) => {
+    const {
+        productos,
+        carrito,
+        onAgregarAlCarrito
+    } = props;
+
   const porCategoria = useMemo(() => {
     return productos.reduce((acc, p) => {
       const cat = p.categoria_nombre || 'Sin categoría';
@@ -20,8 +26,11 @@ const CatalogoProductos = ({ productos, carrito, onAgregarAlCarrito }) => {
   }
 
   return (
-    <div className="space-y-6 overflow-y-auto max-h-[70vh] pr-1">
-      {Object.entries(porCategoria).map(([categoria, prods]) => (
+  <div className="space-y-6 overflow-y-auto max-h-[70vh] pr-1">
+
+    <h1 style={{ color: 'red' }}>SOY EL CATALOGO</h1>
+
+  {Object.entries(porCategoria).map(([categoria, prods]) => (
         <div key={categoria}>
           <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.25em] text-amber-700">
             {categoria}

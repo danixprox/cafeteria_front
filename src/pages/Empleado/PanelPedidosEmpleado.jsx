@@ -11,6 +11,7 @@ import ResumenPedido from './ResumenPedido';
 import NotaVentaModal from './NotaVentaModal';
 import ClientePedidoSelector from '../../Components/ClientePedidoSelector';
 
+
 const PanelPedidosEmpleado = () => {
   const [paso, setPaso] = useState('salas'); // 'salas' | 'mesas' | 'catalogo'
   const [salas, setSalas] = useState([]);
@@ -35,16 +36,17 @@ const PanelPedidosEmpleado = () => {
   });
 
   // Cargar salas y productos al montar
-  useEffect(() => {
-    salasService.getAll()
-      .then(res => setSalas(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setError('Error al cargar las salas'));
+ useEffect(() => {
+  salasService.getAll()
+    .then(res => setSalas(Array.isArray(res.data) ? res.data : []))
+    .catch(() => setError('Error al cargar las salas'));
 
-    productosService.getDisponibles()
-      .then(res => setProductos(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setError('Error al cargar los productos'));
-  }, []);
+  productosService.getDisponibles()
+    .then(res => setProductos(Array.isArray(res.data) ? res.data : []))
+    .catch(() => setError('Error al cargar los productos'));
 
+
+}, []);
   const mostrarError = (msg) => {
     setError(msg);
     setTimeout(() => setError(''), 4000);
@@ -604,10 +606,13 @@ const PanelPedidosEmpleado = () => {
           </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+            {console.log("ANTES DE CATALOGO:", combos)}
             <CatalogoProductos
               productos={productos}
+              combos={combos}
               carrito={carrito}
               onAgregarAlCarrito={handleAgregarAlCarrito}
+              prueba="HOLA123"
             />
             <ResumenPedido
               carrito={carrito}
